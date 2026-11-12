@@ -1,0 +1,6 @@
+{
+  "name": "Al Amaan Real Estate & Developers",
+  "description": "Premier real estate agency and property developers in Lahore, Pakistan featuring Al Jalil Garden, verified residential and commercial plots, luxury residences, and investment advisory.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
