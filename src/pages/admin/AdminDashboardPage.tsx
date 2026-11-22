@@ -70,8 +70,8 @@ interface SidebarEntry {
 
 const SIDEBAR_MODULES: SidebarEntry[] = [
   { id: 'overview', label: 'Overview Dashboard', icon: LayoutDashboard },
-  { id: 'schemes', label: 'Scheme Management', icon: Compass },
-  { id: 'properties', label: 'Property Management', icon: Building2 },
+  { id: 'schemes', label: 'Societies & Schemes', icon: Compass },
+  { id: 'properties', label: 'Plots & Properties', icon: Building2 },
   { id: 'inquiries', label: 'Inquiry Management', icon: MessageSquare },
   { id: 'customers', label: 'Customer Accounts', icon: Users },
   { id: 'content', label: 'Website Content & Stats', icon: FileText },
@@ -92,6 +92,8 @@ export const AdminDashboardPage: React.FC = () => {
 
   const [activeModule, setActiveModule] = useState<AdminModuleId>('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [propertySchemeFilter, setPropertySchemeFilter] = useState<string>('');
+  const [autoCreatePlotForScheme, setAutoCreatePlotForScheme] = useState<string | null>(null);
   const [stats, setStats] = useState<AdminDashboardStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
 
@@ -165,6 +167,10 @@ export const AdminDashboardPage: React.FC = () => {
                 key={mod.id}
                 type="button"
                 onClick={() => {
+                  if (mod.id === 'properties') {
+                    setPropertySchemeFilter('');
+                    setAutoCreatePlotForScheme(null);
+                  }
                   setActiveModule(mod.id);
                   setSidebarOpen(false);
                 }}
@@ -310,15 +316,28 @@ export const AdminDashboardPage: React.FC = () => {
                         {stats.newInquiries}
                       </p>
                     </div>
-                    <div className="bg-white border border-slate-200 rounded-md p-4 flex flex-col justify-between">
-                      <p className="text-[11px] text-slate-500">Quick Action</p>
-                      <button
-                        type="button"
-                        onClick={() => setActiveModule('properties')}
-                        className="text-left text-xs font-semibold text-[#0B192C] hover:text-[#9F7A31] underline"
-                      >
-                        + Add Property / Plot
-                      </button>
+                    <div className="bg-white border border-slate-200 rounded-md p-4 flex flex-col justify-between gap-1.5">
+                      <p className="text-[11px] text-slate-500">Quick Actions</p>
+                      <div className="flex flex-col gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setActiveModule('schemes')}
+                          className="text-left text-xs font-semibold text-[#0B192C] hover:text-[#9F7A31] underline"
+                        >
+                          + Add New Society / Scheme
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPropertySchemeFilter('');
+                            setAutoCreatePlotForScheme(null);
+                            setActiveModule('properties');
+                          }}
+                          className="text-left text-xs font-semibold text-[#0B192C] hover:text-[#9F7A31] underline"
+                        >
+                          + Add Property / Plot
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -386,8 +405,22 @@ export const AdminDashboardPage: React.FC = () => {
             </div>
           )}
 
-          {activeModule === 'schemes' && <SchemesAdminModule />}
-          {activeModule === 'properties' && <PropertiesAdminModule />}
+          {activeModule === 'schemes' && (
+            <SchemesAdminModule
+              onManageSocietyPlots={(schemeId, openCreate) => {
+                setPropertySchemeFilter(schemeId);
+                setAutoCreatePlotForScheme(openCreate ? schemeId : null);
+                setActiveModule('properties');
+              }}
+            />
+          )}
+          {activeModule === 'properties' && (
+            <PropertiesAdminModule
+              initialSchemeFilter={propertySchemeFilter}
+              autoCreateForSchemeId={autoCreatePlotForScheme}
+              onConsumeAutoCreate={() => setAutoCreatePlotForScheme(null)}
+            />
+          )}
           {activeModule === 'customers' && <CustomersAdminModule />}
           {activeModule === 'inquiries' && <InquiriesAdminModule />}
           {activeModule === 'content' && <WebsiteContentAdminModule />}

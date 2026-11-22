@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, MoreVertical, ShieldCheck, User, X } from 'lucide-react';
+import { ChevronDown, Menu, ShieldCheck, User, X } from 'lucide-react';
 import { useSite } from '../context/SiteContext';
 import { FloatingWhatsApp, WhatsAppLogo } from './WhatsAppIcon';
 import { buildWhatsAppUrl } from '../utils/formatters';
@@ -108,42 +108,41 @@ export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children
             )}
           </nav>
 
-          {/* Zone 3: Primary CTA + Three-Dot Overflow Menu (with Admin Login) */}
+          {/* Zone 3: Primary CTA + Customer Account Menu */}
           <div className="flex items-center gap-2.5 shrink-0">
-            {customer ? (
-              <Link
-                to="/dashboard"
-                className="hidden sm:inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold tracking-wide bg-[#B89146] text-[#0B192C] rounded hover:bg-[#cfa95e] transition-colors duration-150 whitespace-nowrap shrink-0"
-              >
-                <User className="w-3.5 h-3.5" />
-                <span>My Portfolio</span>
-              </Link>
-            ) : (
-              <Link
-                to="/contact"
-                className="hidden sm:inline-flex items-center px-4 py-2 text-xs font-semibold tracking-wide bg-[#B89146] text-[#0B192C] rounded hover:bg-[#cfa95e] transition-colors duration-150 whitespace-nowrap shrink-0"
-              >
-                Schedule Consultation
-              </Link>
-            )}
+            <Link
+              to="/contact"
+              className="hidden md:inline-flex items-center px-4 py-2 text-xs font-semibold tracking-wide bg-[#B89146] text-[#0B192C] rounded hover:bg-[#cfa95e] transition-colors duration-150 whitespace-nowrap shrink-0"
+            >
+              Schedule Consultation
+            </Link>
 
-            {/* Three-Dot Menu containing Customer Portal & Admin Login */}
+            {/* Customer Account Button & Dropdown */}
             <div className="relative" ref={moreRef}>
               <button
                 type="button"
                 onClick={() => setMoreOpen((prev) => !prev)}
-                aria-label="More options and portal login"
+                aria-label="Customer Account"
                 aria-expanded={moreOpen}
-                className="w-10 h-10 inline-flex items-center justify-center rounded text-slate-200 hover:text-white hover:bg-white/10 transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-[#D4AF37]"
+                className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded border border-white/25 text-white hover:border-[#B89146] hover:text-[#D4AF37] transition-colors duration-150 whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-[#D4AF37]"
               >
-                <MoreVertical className="w-5 h-5" />
+                <User className="w-3.5 h-3.5 text-[#D4AF37] shrink-0" />
+                <span className="hidden sm:inline">
+                  {customer ? customer.name.split(' ')[0] : 'Customer Account'}
+                </span>
+                <span className="sm:hidden">
+                  {customer ? customer.name.split(' ')[0] : 'Account'}
+                </span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform duration-150 ${moreOpen ? 'rotate-180' : ''}`}
+                />
               </button>
 
               {moreOpen && (
                 <div className="absolute right-0 mt-2 w-60 rounded-md bg-white text-slate-800 shadow-xl border border-slate-200 py-1.5 z-50">
                   {customer ? (
                     <>
-                      <div className="px-4 py-2 border-b border-slate-100">
+                      <div className="px-4 py-2.5 border-b border-slate-100">
                         <p className="text-xs font-semibold text-slate-900 truncate">{customer.name}</p>
                         <p className="text-[11px] text-slate-500 truncate">{customer.email}</p>
                       </div>
@@ -167,6 +166,9 @@ export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children
                     </>
                   ) : (
                     <>
+                      <div className="px-4 py-2 border-b border-slate-100">
+                        <p className="text-[11px] font-semibold text-[#9F7A31]">Customer Account</p>
+                      </div>
                       <Link
                         to="/login"
                         className="block px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-[#0B192C]"
@@ -179,31 +181,14 @@ export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children
                       >
                         Create Client Account
                       </Link>
+                      <Link
+                        to="/forgot-password"
+                        className="block px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-[#0B192C]"
+                      >
+                        Reset Password
+                      </Link>
                     </>
                   )}
-
-                  <div className="my-1 border-t border-slate-100" />
-                  <Link
-                    to="/about"
-                    className="block px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-[#0B192C]"
-                  >
-                    About Al Amaan
-                  </Link>
-                  <Link
-                    to="/contact"
-                    className="block px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-[#0B192C]"
-                  >
-                    Contact Head Office
-                  </Link>
-
-                  <div className="my-1 border-t border-slate-100" />
-                  <Link
-                    to={admin ? '/admin' : '/admin/login'}
-                    className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-[#0B192C] hover:bg-amber-50/70"
-                  >
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#9F7A31]" />
-                    <span>{admin ? 'Open Admin Dashboard' : 'Admin Login'}</span>
-                  </Link>
                 </div>
               )}
             </div>
@@ -449,6 +434,13 @@ export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children
                   {item.label}
                 </Link>
               ))}
+              <Link
+                to={admin ? '/admin' : '/admin/login'}
+                className="inline-flex items-center gap-1.5 text-slate-400 hover:text-[#D4AF37] transition-colors"
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>{admin ? 'Admin Panel' : 'Admin Login'}</span>
+              </Link>
             </div>
           </div>
         </div>

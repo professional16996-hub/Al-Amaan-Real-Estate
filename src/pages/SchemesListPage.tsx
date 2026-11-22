@@ -19,6 +19,7 @@ export const SchemesListPage: React.FC = () => {
   }
 
   const schemes = data?.schemes || [];
+  const allProperties = data?.properties || [];
   const currency = data?.settings.currency || 'PKR';
 
   return (
@@ -57,6 +58,8 @@ export const SchemesListPage: React.FC = () => {
               const lowestPrice = scheme.plotCategories.length
                 ? Math.min(...scheme.plotCategories.map((c) => c.startingPrice))
                 : 0;
+              const societyPlots = allProperties.filter((p) => p.schemeId === scheme.id);
+              const availablePlotsCount = societyPlots.filter((p) => p.status === 'Available').length;
 
               return (
                 <article
@@ -126,7 +129,7 @@ export const SchemesListPage: React.FC = () => {
                     </div>
 
                     <div className="mt-6 pt-5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4">
-                      <div>
+                      <div className="space-y-0.5">
                         {lowestPrice > 0 && (
                           <p className="text-xs text-slate-500">
                             Starting Valuation:{' '}
@@ -135,6 +138,13 @@ export const SchemesListPage: React.FC = () => {
                             </span>
                           </p>
                         )}
+                        <p className="text-xs text-slate-500">
+                          Inventory Inside Society:{' '}
+                          <span className="font-mono-num font-semibold text-[#0B192C]">
+                            {societyPlots.length} {societyPlots.length === 1 ? 'Listing' : 'Listings'}
+                          </span>{' '}
+                          <span className="font-mono-num">({availablePlotsCount} Available)</span>
+                        </p>
                       </div>
 
                       <div className="flex items-center gap-3">

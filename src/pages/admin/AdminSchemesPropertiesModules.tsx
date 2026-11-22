@@ -17,9 +17,14 @@ import { formatPKRCompact } from '../../utils/formatters';
 // A. HOUSING SCHEMES MANAGEMENT MODULE
 // ============================================================================
 
-export const SchemesAdminModule: React.FC = () => {
+interface SchemesAdminModuleProps {
+  onManageSocietyPlots?: (schemeId: string, openCreate?: boolean) => void;
+}
+
+export const SchemesAdminModule: React.FC<SchemesAdminModuleProps> = ({ onManageSocietyPlots }) => {
   const { refreshPublicData } = useSite();
   const [schemes, setSchemes] = useState<HousingScheme[]>([]);
+  const [properties, setProperties] = useState<PropertyItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<HousingScheme> | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -35,8 +40,12 @@ export const SchemesAdminModule: React.FC = () => {
   const loadSchemes = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiRequest<{ schemes: HousingScheme[] }>('/api/admin/schemes', { scope: 'admin' });
-      setSchemes(res.schemes);
+      const [schRes, propRes] = await Promise.all([
+        apiRequest<{ schemes: HousingScheme[] }>('/api/admin/schemes', { scope: 'admin' }),
+        apiRequest<{ properties: PropertyItem[] }>('/api/admin/properties', { scope: 'admin' }),
+      ]);
+      setSchemes(schRes.schemes);
+      setProperties(propRes.properties);
     } finally {
       setLoading(false);
     }
@@ -218,9 +227,9 @@ export const SchemesAdminModule: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="font-display text-2xl font-semibold text-[#0B192C]">Housing Schemes Management</h2>
+          <h2 className="font-display text-2xl font-semibold text-[#0B192C]">Housing Societies &amp; Schemes</h2>
           <p className="text-xs text-slate-600">
-            Add unlimited housing societies, configure plot categories, maps, galleries, and publish status.
+            Manage Al Jalil Garden and add unlimited future housing societies. Click into any society to add or manage its plots.
           </p>
         </div>
         {!editing && (
@@ -230,7 +239,7 @@ export const SchemesAdminModule: React.FC = () => {
             className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold bg-[#0B192C] text-white rounded hover:bg-[#132742]"
           >
             <Plus className="w-4 h-4" />
-            <span>Add New Housing Scheme</span>
+            <span>Add New Society / Scheme</span>
           </button>
         )}
       </div>
@@ -637,101 +646,129 @@ export const SchemesAdminModule: React.FC = () => {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-600">
-                    <th className="py-3 px-4 font-semibold">Scheme Name &amp; Location</th>
-                    <th className="py-3 px-4 font-semibold">Plot Categories</th>
+                    <th className="py-3 px-4 font-semibold">Society Name &amp; Location</th>
+                    <th className="py-3 px-4 font-semibold">Plots Inside Society</th>
                     <th className="py-3 px-4 font-semibold">Visibility</th>
                     <th className="py-3 px-4 font-semibold">Featured</th>
                     <th className="py-3 px-4 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 text-sm">
-                  {schemes.map((s) => (
-                    <tr key={s.id} className="hover:bg-slate-50/70">
-                      <td className="py-3.5 px-4">
-                        <div className="font-semibold text-slate-900 flex items-center gap-2">
-                          <span>{s.name}</span>
-                          {s.published && (
-                            <a
-                              href={`/schemes/${s.slug}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-slate-400 hover:text-[#0B192C]"
-                              title="Open dedicated scheme page"
-                            >
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </a>
-                          )}
-                        </div>
-                        <p className="text-xs text-slate-500">{s.location}</p>
-                      </td>
-                      <td className="py-3.5 px-4 text-xs text-slate-600 font-mono-num">
-                        {s.plotCategories.length} categories
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <button
-                          type="button"
-                          onClick={() => toggleSchemeFlag(s, 'published')}
-                          className={`text-xs font-semibold ${
-                            s.published ? 'text-emerald-700' : 'text-slate-500'
-                          } hover:underline`}
-                        >
-                          {s.published ? 'Published (Click to Unpublish)' : 'Draft (Click to Publish)'}
-                        </button>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <button
-                          type="button"
-                          onClick={() => toggleSchemeFlag(s, 'featured')}
-                          className={`inline-flex items-center gap-1 text-xs font-semibold ${
-                            s.featured ? 'text-[#9F7A31]' : 'text-slate-400 hover:text-slate-700'
-                          }`}
-                        >
-                          <Star className={`w-4 h-4 ${s.featured ? 'fill-current' : ''}`} />
-                          <span>{s.featured ? 'Featured' : 'Standard'}</span>
-                        </button>
-                      </td>
-                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                        <div className="inline-flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => startEdit(s)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium border border-slate-200 rounded hover:border-[#0B192C]"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                            <span>Edit</span>
-                          </button>
-
-                          {confirmDeleteId === s.id ? (
-                            <div className="inline-flex items-center gap-1">
+                  {schemes.map((s) => {
+                    const societyPlotsCount = properties.filter((p) => p.schemeId === s.id).length;
+                    return (
+                      <tr key={s.id} className="hover:bg-slate-50/70">
+                        <td className="py-3.5 px-4">
+                          <div className="font-semibold text-slate-900 flex items-center gap-2">
+                            <span>{s.name}</span>
+                            {s.published && (
+                              <a
+                                href={`/schemes/${s.slug}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-slate-400 hover:text-[#0B192C]"
+                                title="Open dedicated society page"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-500">{s.location}</p>
+                        </td>
+                        <td className="py-3.5 px-4 text-xs whitespace-nowrap">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-mono-num font-semibold text-slate-800">
+                              {societyPlotsCount} {societyPlotsCount === 1 ? 'listing' : 'listings'}
+                            </span>
+                            <span className="text-slate-400">·</span>
+                            <span className="text-slate-500">{s.plotCategories.length} plot sizes</span>
+                          </div>
+                          {onManageSocietyPlots && (
+                            <div className="mt-1.5 flex items-center gap-2">
                               <button
                                 type="button"
-                                onClick={() => handleDelete(s.id)}
-                                className="px-2.5 py-1.5 text-xs font-semibold bg-rose-600 text-white rounded"
+                                onClick={() => onManageSocietyPlots(s.id, false)}
+                                className="text-[11px] font-semibold text-[#0B192C] hover:text-[#9F7A31] underline"
                               >
-                                Confirm
+                                View Plots
                               </button>
+                              <span className="text-slate-300">|</span>
                               <button
                                 type="button"
-                                onClick={() => setConfirmDeleteId(null)}
-                                className="px-2 py-1.5 text-xs text-slate-600"
+                                onClick={() => onManageSocietyPlots(s.id, true)}
+                                className="text-[11px] font-semibold text-[#9F7A31] hover:underline"
                               >
-                                Cancel
+                                + Add Plot Here
                               </button>
                             </div>
-                          ) : (
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <button
+                            type="button"
+                            onClick={() => toggleSchemeFlag(s, 'published')}
+                            className={`text-xs font-semibold ${
+                              s.published ? 'text-emerald-700' : 'text-slate-500'
+                            } hover:underline`}
+                          >
+                            {s.published ? 'Published (Click to Unpublish)' : 'Draft (Click to Publish)'}
+                          </button>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <button
+                            type="button"
+                            onClick={() => toggleSchemeFlag(s, 'featured')}
+                            className={`inline-flex items-center gap-1 text-xs font-semibold ${
+                              s.featured ? 'text-[#9F7A31]' : 'text-slate-400 hover:text-slate-700'
+                            }`}
+                          >
+                            <Star className={`w-4 h-4 ${s.featured ? 'fill-current' : ''}`} />
+                            <span>{s.featured ? 'Featured' : 'Standard'}</span>
+                          </button>
+                        </td>
+                        <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center gap-2">
                             <button
                               type="button"
-                              onClick={() => setConfirmDeleteId(s.id)}
-                              className="p-1.5 text-slate-400 hover:text-rose-600"
-                              title="Delete scheme"
+                              onClick={() => startEdit(s)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium border border-slate-200 rounded hover:border-[#0B192C]"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Edit3 className="w-3.5 h-3.5" />
+                              <span>Edit</span>
                             </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+
+                            {confirmDeleteId === s.id ? (
+                              <div className="inline-flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDelete(s.id)}
+                                  className="px-2.5 py-1.5 text-xs font-semibold bg-rose-600 text-white rounded"
+                                >
+                                  Confirm
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmDeleteId(null)}
+                                  className="px-2 py-1.5 text-xs text-slate-600"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setConfirmDeleteId(s.id)}
+                                className="p-1.5 text-slate-400 hover:text-rose-600"
+                                title="Delete scheme"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -746,12 +783,23 @@ export const SchemesAdminModule: React.FC = () => {
 // B. PROPERTY & PLOT MANAGEMENT MODULE
 // ============================================================================
 
-export const PropertiesAdminModule: React.FC = () => {
+interface PropertiesAdminModuleProps {
+  initialSchemeFilter?: string;
+  autoCreateForSchemeId?: string | null;
+  onConsumeAutoCreate?: () => void;
+}
+
+export const PropertiesAdminModule: React.FC<PropertiesAdminModuleProps> = ({
+  initialSchemeFilter = '',
+  autoCreateForSchemeId = null,
+  onConsumeAutoCreate,
+}) => {
   const { refreshPublicData } = useSite();
   const [properties, setProperties] = useState<PropertyItem[]>([]);
   const [schemes, setSchemes] = useState<HousingScheme[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('All');
+  const [schemeFilter, setSchemeFilter] = useState<string>(initialSchemeFilter);
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<Partial<PropertyItem> | null>(null);
   const [featuresText, setFeaturesText] = useState('');
@@ -779,26 +827,42 @@ export const PropertiesAdminModule: React.FC = () => {
     void loadAll();
   }, [loadAll]);
 
-  const startCreate = () => {
-    setEditing({
-      title: '',
-      referenceCode: `AAR-AJG-${properties.length + 108}`,
-      description: '',
-      price: 5500000,
-      location: '',
-      city: 'Lahore',
-      schemeId: schemes[0]?.id || '',
-      size: '5 Marla',
-      areaSqFt: 1125,
-      category: 'Residential Plot',
-      status: 'Available',
-      featured: false,
-      images: [],
-      possessionReady: true,
-    });
-    setFeaturesText('Direct Society Transfer\n40-Ft Carpeted Road\nUnderground Electricity');
-    setFeedback(null);
-  };
+  useEffect(() => {
+    setSchemeFilter(initialSchemeFilter);
+  }, [initialSchemeFilter]);
+
+  const startCreate = useCallback(
+    (preselectedSchemeId?: string) => {
+      const targetSchemeId = preselectedSchemeId || schemeFilter || schemes[0]?.id || '';
+      const matchedScheme = schemes.find((s) => s.id === targetSchemeId);
+      setEditing({
+        title: '',
+        referenceCode: `AAR-${matchedScheme?.slug === 'al-jalil-garden' ? 'AJG' : 'LHR'}-${properties.length + 108}`,
+        description: '',
+        price: 5500000,
+        location: matchedScheme ? `${matchedScheme.name}, Lahore` : '',
+        city: matchedScheme?.city || 'Lahore',
+        schemeId: targetSchemeId,
+        size: '5 Marla',
+        areaSqFt: 1125,
+        category: 'Residential Plot',
+        status: 'Available',
+        featured: false,
+        images: [],
+        possessionReady: true,
+      });
+      setFeaturesText('Direct Society Transfer\n40-Ft Carpeted Road\nUnderground Electricity');
+      setFeedback(null);
+    },
+    [properties.length, schemeFilter, schemes]
+  );
+
+  useEffect(() => {
+    if (autoCreateForSchemeId && !loading) {
+      startCreate(autoCreateForSchemeId);
+      onConsumeAutoCreate?.();
+    }
+  }, [autoCreateForSchemeId, loading, onConsumeAutoCreate, startCreate]);
 
   const startEdit = (prop: PropertyItem) => {
     setEditing({
@@ -895,6 +959,7 @@ export const PropertiesAdminModule: React.FC = () => {
   };
 
   const visibleProperties = properties.filter((p) => {
+    if (schemeFilter && p.schemeId !== schemeFilter) return false;
     if (statusFilter !== 'All' && p.status !== statusFilter) return false;
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -903,23 +968,27 @@ export const PropertiesAdminModule: React.FC = () => {
     return true;
   });
 
+  const activeSchemeObj = schemes.find((s) => s.id === schemeFilter);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="font-display text-2xl font-semibold text-[#0B192C]">Property &amp; Plot Management</h2>
+          <h2 className="font-display text-2xl font-semibold text-[#0B192C]">
+            {activeSchemeObj ? `Plots & Properties in ${activeSchemeObj.name}` : 'Plots & Properties Management'}
+          </h2>
           <p className="text-xs text-slate-600">
-            Manage residential plots, commercial allocations, luxury residences, images, and availability statuses.
+            Add plots, commercial files, and residences inside Al Jalil Garden or any other housing society.
           </p>
         </div>
         {!editing && (
           <button
             type="button"
-            onClick={startCreate}
+            onClick={() => startCreate()}
             className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold bg-[#0B192C] text-white rounded hover:bg-[#132742]"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Property / Plot</span>
+            <span>{activeSchemeObj ? `Add Plot in ${activeSchemeObj.name}` : 'Add Property / Plot'}</span>
           </button>
         )}
       </div>
@@ -983,7 +1052,7 @@ export const PropertiesAdminModule: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Housing Scheme</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Housing Society / Project *</label>
               <select
                 value={editing.schemeId || ''}
                 onChange={(e) => setEditing({ ...editing, schemeId: e.target.value })}
@@ -1216,13 +1285,28 @@ export const PropertiesAdminModule: React.FC = () => {
       ) : (
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3 bg-white border border-slate-200 rounded-md p-4">
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by title, ref code, or block..."
-              className="w-full sm:w-72 px-3 py-1.5 text-xs border border-slate-300 rounded"
-            />
+            <div className="flex flex-wrap items-center gap-3">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by title, ref code, or block..."
+                className="w-full sm:w-64 px-3 py-1.5 text-xs border border-slate-300 rounded"
+              />
+              <select
+                value={schemeFilter}
+                onChange={(e) => setSchemeFilter(e.target.value)}
+                aria-label="Filter by housing society"
+                className="px-3 py-1.5 text-xs border border-slate-300 rounded bg-white text-slate-700 font-medium"
+              >
+                <option value="">All Housing Societies</option>
+                {schemes.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="flex items-center gap-1 p-1 bg-slate-100 rounded">
               {['All', 'Available', 'Reserved', 'Sold'].map((st) => (
                 <button

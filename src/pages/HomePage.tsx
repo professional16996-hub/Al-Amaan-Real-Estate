@@ -11,6 +11,7 @@ import { buildWhatsAppUrl, formatPKRCompact } from '../utils/formatters';
 export const HomePage: React.FC = () => {
   const { data, loading } = useSite();
   const [activeCategory, setActiveCategory] = useState<string>('All');
+  const [activeSchemeId, setActiveSchemeId] = useState<string>('All');
 
   const featuredScheme = useMemo(() => {
     if (!data?.schemes.length) return null;
@@ -19,14 +20,16 @@ export const HomePage: React.FC = () => {
 
   const filteredProperties = useMemo(() => {
     const all = data?.properties || [];
+    const byScheme =
+      activeSchemeId === 'All' ? all : all.filter((p) => p.schemeId === activeSchemeId);
     const list =
       activeCategory === 'All'
-        ? all
+        ? byScheme
         : activeCategory === 'Available'
-          ? all.filter((p) => p.status === 'Available')
-          : all.filter((p) => p.category === activeCategory);
+          ? byScheme.filter((p) => p.status === 'Available')
+          : byScheme.filter((p) => p.category === activeCategory);
     return list.slice(0, 6);
-  }, [data, activeCategory]);
+  }, [data, activeCategory, activeSchemeId]);
 
   if (loading && !data) {
     return (
@@ -195,16 +198,103 @@ export const HomePage: React.FC = () => {
                     to={`/schemes/${featuredScheme.slug}`}
                     className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 text-xs font-semibold bg-[#0B192C] text-white rounded hover:bg-[#132742] transition-colors whitespace-nowrap"
                   >
-                    <span>Explore {featuredScheme.name}</span>
+                    <span>Explore {featuredScheme.name} &amp; Plots</span>
                     <ArrowRight className="w-4 h-4" />
                   </Link>
                   <Link
                     to="/schemes"
                     className="px-4 py-3 text-xs font-semibold text-[#0B192C] border border-slate-300 rounded hover:border-[#0B192C] transition-colors whitespace-nowrap"
                   >
-                    All Schemes ({data.schemes.length})
+                    All Societies ({data.schemes.length})
                   </Link>
                 </div>
+              </div>
+            </div>
+
+            {/* Dynamic Portfolio of All Published Housing Societies & Projects */}
+            <div className="mt-14 pt-12 border-t border-slate-200">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+                <div>
+                  <p className="text-xs font-semibold tracking-wide text-[#9F7A31]">
+                    Agency Project Portfolio · {data.schemes.length} Published {data.schemes.length === 1 ? 'Society' : 'Societies'}
+                  </p>
+                  <h3 className="mt-1 font-display text-2xl sm:text-3xl font-semibold text-[#0B192C]">
+                    Housing Societies &amp; Development Projects
+                  </h3>
+                </div>
+                <Link
+                  to="/schemes"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0B192C] hover:text-[#9F7A31] whitespace-nowrap"
+                >
+                  <span>View Complete Societies Directory</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {data.schemes.map((scheme) => {
+                  const societyPlots = data.properties.filter((p) => p.schemeId === scheme.id);
+                  const availableSocietyPlots = societyPlots.filter((p) => p.status === 'Available').length;
+                  const lowestPlotPrice = scheme.plotCategories.length
+                    ? Math.min(...scheme.plotCategories.map((c) => c.startingPrice))
+                    : 0;
+
+                  return (
+                    <article
+                      key={scheme.id}
+                      className="bg-white border border-slate-200 rounded-md overflow-hidden flex flex-col justify-between hover:border-[#B89146] transition-colors"
+                    >
+                      <div>
+                        <Link to={`/schemes/${scheme.slug}`} className="block relative aspect-[16/10] bg-slate-900 overflow-hidden">
+                          <ResilientImage
+                            src={scheme.heroImage}
+                            alt={scheme.name}
+                            className="w-full h-full object-cover hover:scale-[1.02] transition-transform duration-300"
+                          />
+                        </Link>
+                        <div className="p-5 space-y-2.5">
+                          <p className="text-[11px] text-slate-500">
+                            {scheme.featured ? (
+                              <span className="font-semibold text-[#9F7A31]">Featured Flagship · </span>
+                            ) : null}
+                            {scheme.approvalStatus} · {scheme.city}
+                          </p>
+                          <Link to={`/schemes/${scheme.slug}`}>
+                            <h4 className="font-display text-2xl font-semibold text-[#0B192C] hover:text-[#9F7A31] transition-colors">
+                              {scheme.name}
+                            </h4>
+                          </Link>
+                          <p className="flex items-center gap-1.5 text-xs text-slate-500">
+                            <MapPin className="w-3.5 h-3.5 text-[#9F7A31] shrink-0" />
+                            <span className="line-clamp-1">{scheme.location}</span>
+                          </p>
+                          <p className="text-xs text-slate-600 leading-relaxed line-clamp-2 pt-1">
+                            {scheme.tagline || scheme.description}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="px-5 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-3 text-xs">
+                        <div className="font-mono-num text-slate-600">
+                          <span className="font-semibold text-[#0B192C]">{societyPlots.length}</span>{' '}
+                          {societyPlots.length === 1 ? 'Listing' : 'Listings'} ({availableSocietyPlots} Avail.)
+                          {lowestPlotPrice > 0 && (
+                            <span className="block text-[11px] text-slate-500">
+                              From {formatPKRCompact(lowestPlotPrice, currency)}
+                            </span>
+                          )}
+                        </div>
+                        <Link
+                          to={`/schemes/${scheme.slug}`}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-[#0B192C] text-white rounded hover:bg-[#132742] transition-colors whitespace-nowrap"
+                        >
+                          <span>View Plots</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -212,43 +302,83 @@ export const HomePage: React.FC = () => {
       )}
 
       {/* 4. Latest Verified Properties & Available Plots */}
-      <section className="py-20 lg:py-24 bg-white">
+      <section id="homepage-properties" className="py-20 lg:py-24 bg-white">
         <div className="max-w-[1240px] mx-auto px-5 sm:px-8">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
-            <div className="max-w-xl">
-              <p className="text-xs font-semibold tracking-wide text-[#9F7A31]">
-                Direct Inventory · Verified Documentation
-              </p>
-              <h2 className="mt-2 font-display text-3xl sm:text-4xl font-semibold text-[#0B192C] [text-wrap:balance]">
-                Latest Properties &amp; Possession Plots
-              </h2>
+          <div className="flex flex-col gap-6 mb-10">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+              <div className="max-w-xl">
+                <p className="text-xs font-semibold tracking-wide text-[#9F7A31]">
+                  Direct Inventory · Society-Wise Plots &amp; Homes
+                </p>
+                <h2 className="mt-2 font-display text-3xl sm:text-4xl font-semibold text-[#0B192C] [text-wrap:balance]">
+                  Plots &amp; Properties Inside Our Societies
+                </h2>
+              </div>
+
+              {/* Interactive Category Segmented Filter Controls */}
+              <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-100 rounded-md self-start">
+                {['All', 'Available', 'Residential Plot', 'Commercial Plot', 'Luxury Residence'].map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => setActiveCategory(tab)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded transition-colors whitespace-nowrap ${
+                      activeCategory === tab
+                        ? 'bg-[#0B192C] text-white'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Interactive Segmented Filter Controls */}
-            <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-100 rounded-md self-start">
-              {['All', 'Available', 'Residential Plot', 'Commercial Plot', 'Luxury Residence'].map((tab) => (
+            {/* Dynamic Housing Society Filter Bar */}
+            {data.schemes.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
+                <span className="text-xs font-semibold text-slate-500 mr-1">Filter by Society:</span>
                 <button
-                  key={tab}
                   type="button"
-                  onClick={() => setActiveCategory(tab)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded transition-colors whitespace-nowrap ${
-                    activeCategory === tab
-                      ? 'bg-[#0B192C] text-white'
-                      : 'text-slate-600 hover:text-slate-900'
+                  onClick={() => setActiveSchemeId('All')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors whitespace-nowrap ${
+                    activeSchemeId === 'All'
+                      ? 'bg-[#B89146] border-[#B89146] text-[#0B192C] font-semibold'
+                      : 'bg-white border-slate-200 text-slate-700 hover:border-slate-400'
                   }`}
                 >
-                  {tab}
+                  All Societies ({data.properties.length})
                 </button>
-              ))}
-            </div>
+                {data.schemes.map((scheme) => {
+                  const count = data.properties.filter((p) => p.schemeId === scheme.id).length;
+                  return (
+                    <button
+                      key={scheme.id}
+                      type="button"
+                      onClick={() => setActiveSchemeId(scheme.id)}
+                      className={`px-3 py-1.5 text-xs font-medium rounded border transition-colors whitespace-nowrap ${
+                        activeSchemeId === scheme.id
+                          ? 'bg-[#B89146] border-[#B89146] text-[#0B192C] font-semibold'
+                          : 'bg-white border-slate-200 text-slate-700 hover:border-slate-400'
+                      }`}
+                    >
+                      {scheme.name} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {filteredProperties.length === 0 ? (
             <div className="py-16 text-center border border-slate-200 rounded-md">
-              <p className="text-sm text-slate-600">No properties match the selected filter right now.</p>
+              <p className="text-sm text-slate-600">No properties match the selected society or category filter right now.</p>
               <button
                 type="button"
-                onClick={() => setActiveCategory('All')}
+                onClick={() => {
+                  setActiveCategory('All');
+                  setActiveSchemeId('All');
+                }}
                 className="mt-3 px-4 py-2 text-xs font-semibold bg-[#0B192C] text-white rounded"
               >
                 Show All Listings
