@@ -1,12 +1,15 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Check, Copy, Edit3, Plus, RefreshCw, Trash2, Upload, X } from 'lucide-react';
-import { apiRequest, uploadMediaRequest } from '../../services/api';
+import { BellRing, Check, Copy, Edit3, Eye, EyeOff, ImagePlus, Megaphone, Plus, RefreshCw, Trash2, X } from 'lucide-react';
+import { apiRequest, uploadMediaRequest, uploadMultipleMediaFiles } from '../../services/api';
 import { useSite } from '../../context/SiteContext';
+import { useNotifications } from '../../context/NotificationContext';
 import type {
   ActivityLogItem,
   InquiryItem,
   InquiryStatus,
   MediaAsset,
+  NotificationCategory,
+  SiteNotification,
   TestimonialItem,
   UserAccount,
 } from '../../types/models';
@@ -22,8 +25,9 @@ export const CustomersAdminModule: React.FC = () => {
   const [customers, setCustomers] = useState<UserAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [editing, setEditing] = useState<UserAccount | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [editing, setEditing] = useState<(UserAccount & { newPassword?: string }) | null>(null);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
   const loadCustomers = useCallback(async () => {
     setLoading(true);
@@ -40,31 +44,42 @@ export const CustomersAdminModule: React.FC = () => {
   }, [loadCustomers]);
 
   const toggleActive = async (cust: UserAccount) => {
-    await apiRequest(`/api/admin/customers/${cust.id}`, {
-      method: 'PUT',
-      scope: 'admin',
-      body: { active: !cust.active },
-    });
-    await loadCustomers();
-    setFeedback(`Customer "${cust.name}" is now ${!cust.active ? 'Active' : 'Deactivated'}.`);
+    setFeedback(null);
+    try {
+      await apiRequest(`/api/admin/customers/${cust.id}`, {
+        method: 'PUT',
+        scope: 'admin',
+        body: { active: !cust.active },
+      });
+      await loadCustomers();
+      setFeedback({ type: 'ok', text: `Customer "${cust.name}" is now ${!cust.active ? 'Active' : 'Deactivated'}.` });
+    } catch (err) {
+      setFeedback({ type: 'err', text: err instanceof Error ? err.message : 'Unable to update status.' });
+    }
   };
 
   const saveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editing) return;
-    await apiRequest(`/api/admin/customers/${editing.id}`, {
-      method: 'PUT',
-      scope: 'admin',
-      body: {
-        name: editing.name,
-        email: editing.email,
-        phone: editing.phone,
-        active: editing.active,
-      },
-    });
-    setEditing(null);
-    await loadCustomers();
-    setFeedback('Customer profile updated.');
+    setFeedback(null);
+    try {
+      await apiRequest(`/api/admin/customers/${editing.id}`, {
+        method: 'PUT',
+        scope: 'admin',
+        body: {
+          name: editing.name,
+          email: editing.email.trim().toLowerCase(),
+          phone: editing.phone,
+          active: editing.active,
+          newPassword: editing.newPassword || undefined,
+        },
+      });
+      setEditing(null);
+      await loadCustomers();
+      setFeedback({ type: 'ok', text: 'Customer email, profile, and password updated.' });
+    } catch (err) {
+      setFeedback({ type: 'err', text: err instanceof Error ? err.message : 'Unable to update customer.' });
+    }
   };
 
   const filtered = customers.filter((c) => {
@@ -78,25 +93,31 @@ export const CustomersAdminModule: React.FC = () => {
       <div>
         <h2 className="font-display text-2xl font-semibold text-[#0B192C]">Customer Accounts Management</h2>
         <p className="text-xs text-slate-600">
-          Review registered client accounts, update contact details, or activate and deactivate portal access.
+          Review registered client accounts, update email or password, or activate and deactivate portal access.
         </p>
       </div>
 
       {feedback && (
-        <div className="p-3 rounded bg-emerald-50 border border-emerald-200 text-xs text-emerald-900">
-          {feedback}
+        <div
+          className={`p-3 rounded text-xs border ${
+            feedback.type === 'ok'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+              : 'bg-rose-50 border-rose-200 text-rose-800'
+          }`}
+        >
+          {feedback.text}
         </div>
       )}
 
       {editing && (
         <form onSubmit={saveEdit} className="bg-white border border-slate-200 rounded-md p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-display text-xl font-semibold text-[#0B192C]">Edit Customer Details</h3>
+            <h3 className="font-display text-xl font-semibold text-[#0B192C]">Edit Customer Email &amp; Password</h3>
             <button type="button" onClick={() => setEditing(null)} className="text-slate-500">
               <X className="w-4 h-4" />
             </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Full Name</label>
               <input
@@ -126,6 +147,26 @@ export const CustomersAdminModule: React.FC = () => {
                 onChange={(e) => setEditing({ ...editing, phone: e.target.value })}
                 className="w-full px-3 py-2 text-sm font-mono-num border border-slate-300 rounded"
               />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">New Password (optional)</label>
+              <div className="relative">
+                <input
+                  type={showNewPass ? 'text' : 'password'}
+                  value={editing.newPassword || ''}
+                  onChange={(e) => setEditing({ ...editing, newPassword: e.target.value })}
+                  placeholder="Min 6 chars (if resetting)"
+                  className="w-full pl-3 pr-9 py-2 text-sm border border-slate-300 rounded"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPass((p) => !p)}
+                  aria-label={showNewPass ? 'Hide password' : 'Show password'}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                >
+                  {showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
           </div>
           <div className="flex items-center justify-end gap-3">
@@ -676,15 +717,23 @@ export const MediaAdminModule: React.FC = () => {
   }, [loadMedia]);
 
   const handleUploadNew = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const picked = Array.from(files);
+    e.target.value = '';
     setUploading(true);
     setNotice(null);
     try {
-      await uploadMediaRequest('/api/admin/media/upload', file, titleInput || file.name);
+      await uploadMultipleMediaFiles(picked, titleInput.trim() || undefined);
       setTitleInput('');
       await loadMedia();
-      setNotice({ type: 'ok', text: 'Image uploaded to media library.' });
+      setNotice({
+        type: 'ok',
+        text:
+          picked.length === 1
+            ? 'Photo uploaded to media library.'
+            : `${picked.length} photos uploaded to media library.`,
+      });
     } catch (err) {
       setNotice({ type: 'err', text: err instanceof Error ? err.message : 'Upload failed.' });
     } finally {
@@ -752,13 +801,13 @@ export const MediaAdminModule: React.FC = () => {
           type="text"
           value={titleInput}
           onChange={(e) => setTitleInput(e.target.value)}
-          placeholder="Optional image label (e.g. Tulip Block Park)"
-          className="flex-1 min-w-[220px] px-3.5 py-2 text-xs border border-slate-300 rounded"
+          placeholder="Optional photo label (e.g. Tulip Block Park)"
+          className="flex-1 min-w-[220px] px-3.5 py-2.5 text-xs border border-slate-300 rounded"
         />
         <label className="cursor-pointer inline-flex items-center gap-2 px-5 py-2.5 text-xs font-semibold bg-[#0B192C] text-white rounded hover:bg-[#132742]">
-          <Upload className="w-4 h-4" />
-          <span>{uploading ? 'Uploading...' : 'Upload New Image'}</span>
-          <input type="file" accept="image/*" onChange={handleUploadNew} className="hidden" />
+          <ImagePlus className="w-4 h-4 text-[#D4AF37]" />
+          <span>{uploading ? 'Uploading...' : 'Pick Photos from Phone Gallery'}</span>
+          <input type="file" accept="image/*" multiple onChange={handleUploadNew} className="hidden" />
         </label>
       </div>
 
@@ -883,3 +932,247 @@ export const ActivityLogsAdminModule: React.FC = () => {
     </div>
   );
 };
+
+// ============================================================================
+// O. WEBSITE & MOBILE NOTIFICATIONS BROADCAST MODULE
+// ============================================================================
+
+export const NotificationsAdminModule: React.FC = () => {
+  const { refreshNotifications, sendTestMobileNotification, requestMobilePermission, permission } = useNotifications();
+  const [items, setItems] = useState<SiteNotification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [title, setTitle] = useState('');
+  const [message, setMessage] = useState('');
+  const [category, setCategory] = useState<NotificationCategory>('announcement');
+  const [link, setLink] = useState('/projects');
+  const [sending, setSending] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+
+  const loadNotifications = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await apiRequest<{ notifications: SiteNotification[] }>('/api/admin/notifications', {
+        scope: 'admin',
+      });
+      setItems(res.notifications || []);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadNotifications();
+  }, [loadNotifications]);
+
+  const handleBroadcast = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSending(true);
+    setFeedback(null);
+    try {
+      await apiRequest('/api/admin/notifications', {
+        method: 'POST',
+        scope: 'admin',
+        body: { title, message, category, link },
+      });
+      setTitle('');
+      setMessage('');
+      setCategory('announcement');
+      setLink('/projects');
+      await loadNotifications();
+      await refreshNotifications();
+      setFeedback({ type: 'ok', text: 'Notification published to website bell & mobile notification bars.' });
+    } catch (err) {
+      setFeedback({ type: 'err', text: err instanceof Error ? err.message : 'Failed to send notification.' });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await apiRequest(`/api/admin/notifications/${id}`, { method: 'DELETE', scope: 'admin' });
+      await loadNotifications();
+      await refreshNotifications();
+    } catch (err) {
+      setFeedback({ type: 'err', text: err instanceof Error ? err.message : 'Failed to delete notification.' });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="font-display text-2xl font-semibold text-[#0B192C]">
+            Website &amp; Mobile Notifications
+          </h2>
+          <p className="text-xs text-slate-600">
+            Automatic alerts fire whenever projects, plots, payment plans, development updates, or inquiries change. Broadcast custom alerts below.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {permission !== 'granted' ? (
+            <button
+              type="button"
+              onClick={async () => {
+                const res = await requestMobilePermission();
+                setFeedback({
+                  type: res === 'granted' ? 'ok' : 'err',
+                  text:
+                    res === 'granted'
+                      ? 'Mobile notification bar permission granted on this device.'
+                      : 'Permission not granted in browser settings.',
+                });
+              }}
+              className="px-3.5 py-2 text-xs font-semibold bg-[#B89146] text-[#0B192C] rounded hover:bg-[#cfa95e]"
+            >
+              Enable Phone Bar Alerts
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={async () => {
+                const res = await sendTestMobileNotification();
+                setFeedback({ type: res.ok ? 'ok' : 'err', text: res.text });
+              }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold border border-[#0B192C] text-[#0B192C] rounded hover:bg-[#0B192C] hover:text-white"
+            >
+              <BellRing className="w-3.5 h-3.5" />
+              <span>Test Phone Notification Bar</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {feedback && (
+        <div
+          className={`p-3.5 rounded text-xs border ${
+            feedback.type === 'ok'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+              : 'bg-rose-50 border-rose-200 text-rose-800'
+          }`}
+        >
+          {feedback.text}
+        </div>
+      )}
+
+      <form onSubmit={handleBroadcast} className="bg-white border border-slate-200 rounded-md p-5 space-y-4">
+        <div className="flex items-center gap-2 text-sm font-semibold text-[#0B192C]">
+          <Megaphone className="w-4 h-4 text-[#9F7A31]" />
+          <span>Send Custom Website Notification</span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-2">
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Notification Title *</label>
+            <input
+              type="text"
+              required
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Weekend Site Inspection & Plot Balloting Notice"
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Category</label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value as NotificationCategory)}
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded bg-white"
+            >
+              <option value="announcement">General Announcement</option>
+              <option value="project">New Project / Society</option>
+              <option value="property">New Property / Plot</option>
+              <option value="development">Site Development Update</option>
+              <option value="payment_plan">Payment Plan Update</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-2">
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Message *</label>
+            <textarea
+              rows={2}
+              required
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Short, clear alert text shown in the bell drawer and mobile notification bar."
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Open Page Link</label>
+            <input
+              type="text"
+              value={link}
+              onChange={(e) => setLink(e.target.value)}
+              placeholder="/projects"
+              className="w-full px-3 py-2 text-sm font-mono-num border border-slate-300 rounded"
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={sending}
+            className="px-6 py-2.5 text-xs font-semibold bg-[#0B192C] text-white rounded hover:bg-[#132742] disabled:opacity-60"
+          >
+            {sending ? 'Sending...' : 'Publish Notification'}
+          </button>
+        </div>
+      </form>
+
+      <div className="bg-white border border-slate-200 rounded-md overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
+          <h3 className="font-display text-xl font-semibold text-[#0B192C]">
+            Sent &amp; Automatic Notifications ({items.length})
+          </h3>
+          <button
+            type="button"
+            onClick={() => void loadNotifications()}
+            className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-[#0B192C]"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Refresh</span>
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="p-8 text-center text-xs text-slate-500">Loading notifications...</div>
+        ) : items.length === 0 ? (
+          <div className="p-8 text-center text-xs text-slate-500">No notifications recorded yet.</div>
+        ) : (
+          <div className="divide-y divide-slate-200">
+            {items.map((n) => (
+              <div key={n.id} className="p-4 flex items-start justify-between gap-4">
+                <div className="min-w-0 space-y-1">
+                  <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                    <span className="font-semibold uppercase tracking-wide text-[#9F7A31]">{n.category}</span>
+                    <span className="text-slate-400">·</span>
+                    <span className="text-slate-500 font-mono-num">{formatDisplayDateTime(n.createdAt)}</span>
+                    <span className="text-slate-400">·</span>
+                    <span className="text-slate-500">Audience: {n.targetAudience}</span>
+                  </div>
+                  <p className="text-sm font-semibold text-[#0B192C]">{n.title}</p>
+                  <p className="text-xs text-slate-600">{n.message}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void handleDelete(n.id)}
+                  aria-label={`Delete notification ${n.title}`}
+                  className="p-2 text-rose-600 hover:text-rose-800 shrink-0"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+

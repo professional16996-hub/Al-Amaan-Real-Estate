@@ -1,16 +1,16 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ExternalLink, Plus, Star, Trash2, Upload, Edit3, X } from 'lucide-react';
-import { apiRequest, uploadMediaRequest } from '../../services/api';
+import { ExternalLink, Plus, Star, Trash2, Edit3, X } from 'lucide-react';
+import { apiRequest } from '../../services/api';
 import { useSite } from '../../context/SiteContext';
 import type {
   HousingScheme,
-  MediaAsset,
   PlotCategory,
+  ProjectStatus,
   PropertyCategory,
   PropertyItem,
   PropertyStatus,
 } from '../../types/models';
-import { ResilientImage } from '../../components/ResilientImage';
+import { SingleImageField, MultiImageGalleryField } from '../../components/MobileImagePicker';
 import { formatPKRCompact } from '../../utils/formatters';
 
 // ============================================================================
@@ -19,10 +19,19 @@ import { formatPKRCompact } from '../../utils/formatters';
 
 interface SchemesAdminModuleProps {
   onManageSocietyPlots?: (schemeId: string, openCreate?: boolean) => void;
+  onOpenProjectSection?: (
+    module: 'project-gallery' | 'project-info' | 'project-payment-plans' | 'project-updates',
+    projectId: string
+  ) => void;
+  onAddNewProject?: () => void;
 }
 
-export const SchemesAdminModule: React.FC<SchemesAdminModuleProps> = ({ onManageSocietyPlots }) => {
-  const { refreshPublicData } = useSite();
+export const SchemesAdminModule: React.FC<SchemesAdminModuleProps> = ({
+  onManageSocietyPlots,
+  onOpenProjectSection,
+  onAddNewProject,
+}) => {
+  const { data, refreshPublicData } = useSite();
   const [schemes, setSchemes] = useState<HousingScheme[]>([]);
   const [properties, setProperties] = useState<PropertyItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,12 +39,10 @@ export const SchemesAdminModule: React.FC<SchemesAdminModuleProps> = ({ onManage
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [saving, setSaving] = useState(false);
-  const [uploadingImg, setUploadingImg] = useState(false);
 
   // Text helpers for array fields
   const [highlightsText, setHighlightsText] = useState('');
   const [facilitiesText, setFacilitiesText] = useState('');
-  const [galleryUrlInput, setGalleryUrlInput] = useState('');
 
   const loadSchemes = useCallback(async () => {
     setLoading(true);
@@ -59,6 +66,8 @@ export const SchemesAdminModule: React.FC<SchemesAdminModuleProps> = ({ onManage
     setEditing({
       name: '',
       slug: '',
+      status: 'Ongoing',
+      projectLogo: '',
       tagline: '',
       location: '',
       city: 'Lahore',
@@ -79,8 +88,8 @@ export const SchemesAdminModule: React.FC<SchemesAdminModuleProps> = ({ onManage
       mapEmbedUrl: '',
       googleMapsUrl: '',
       contactPerson: 'Al Amaan Scheme Desk',
-      contactPhone: '+92 300 8459920',
-      contactEmail: 'info@alamaanestate.com',
+      contactPhone: data?.contact.primaryPhone || '+92 300 8459920',
+      contactEmail: data?.contact.email || 'info@alamaanestate.com',
       published: true,
       featured: false,
       displayOrder: schemes.length + 1,
@@ -99,52 +108,6 @@ export const SchemesAdminModule: React.FC<SchemesAdminModuleProps> = ({ onManage
     setHighlightsText(scheme.overviewHighlights.join('\n'));
     setFacilitiesText(scheme.facilities.join('\n'));
     setFeedback(null);
-  };
-
-  const handleHeroUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !editing) return;
-    setUploadingImg(true);
-    try {
-      const res = await uploadMediaRequest<{ asset: MediaAsset }>(
-        '/api/admin/media/upload',
-        file,
-        `${editing.name || 'Scheme'} Hero`
-      );
-      setEditing((prev) =>
-        prev
-          ? {
-              ...prev,
-              heroImage: res.asset.url,
-              gallery: Array.from(new Set([res.asset.url, ...(prev.gallery || [])])),
-            }
-          : prev
-      );
-    } catch (err) {
-      setFeedback({ type: 'err', text: err instanceof Error ? err.message : 'Upload failed.' });
-    } finally {
-      setUploadingImg(false);
-    }
-  };
-
-  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !editing) return;
-    setUploadingImg(true);
-    try {
-      const res = await uploadMediaRequest<{ asset: MediaAsset }>(
-        '/api/admin/media/upload',
-        file,
-        `${editing.name || 'Scheme'} Gallery`
-      );
-      setEditing((prev) =>
-        prev ? { ...prev, gallery: [...(prev.gallery || []), res.asset.url] } : prev
-      );
-    } catch (err) {
-      setFeedback({ type: 'err', text: err instanceof Error ? err.message : 'Upload failed.' });
-    } finally {
-      setUploadingImg(false);
-    }
   };
 
   const handleSaveScheme = async (e: React.FormEvent) => {
@@ -227,19 +190,19 @@ export const SchemesAdminModule: React.FC<SchemesAdminModuleProps> = ({ onManage
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="font-display text-2xl font-semibold text-[#0B192C]">Housing Societies &amp; Schemes</h2>
+          <h2 className="font-display text-2xl font-semibold text-[#0B192C]">Manage Real Estate Projects</h2>
           <p className="text-xs text-slate-600">
-            Manage Al Jalil Garden and add unlimited future housing societies. Click into any society to add or manage its plots.
+            Add unlimited projects, publish or unpublish, feature on homepage, or jump into each project’s Gallery, Payment Plans, Updates, and Plots.
           </p>
         </div>
         {!editing && (
           <button
             type="button"
-            onClick={startCreate}
-            className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold bg-[#0B192C] text-white rounded hover:bg-[#132742]"
+            onClick={() => (onAddNewProject ? onAddNewProject() : startCreate())}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold bg-[#0B192C] text-white rounded hover:bg-[#132742] min-h-[42px]"
           >
             <Plus className="w-4 h-4" />
-            <span>Add New Society / Scheme</span>
+            <span>Add New Project</span>
           </button>
         )}
       </div>
@@ -271,9 +234,9 @@ export const SchemesAdminModule: React.FC<SchemesAdminModuleProps> = ({ onManage
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Scheme Name *</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Project Name *</label>
               <input
                 type="text"
                 required
@@ -292,6 +255,18 @@ export const SchemesAdminModule: React.FC<SchemesAdminModuleProps> = ({ onManage
                 placeholder="al-jalil-garden"
                 className="w-full px-3 py-2 text-sm font-mono-num border border-slate-300 rounded"
               />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Project Status</label>
+              <select
+                value={editing.status || 'Ongoing'}
+                onChange={(e) => setEditing({ ...editing, status: e.target.value as ProjectStatus })}
+                className="w-full px-3 py-2 text-sm border border-slate-300 rounded bg-white"
+              >
+                <option value="Ongoing">Ongoing</option>
+                <option value="Upcoming">Upcoming</option>
+                <option value="Completed">Completed</option>
+              </select>
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Approval Standing</label>
@@ -349,85 +324,39 @@ export const SchemesAdminModule: React.FC<SchemesAdminModuleProps> = ({ onManage
             />
           </div>
 
-          {/* Hero & Gallery Images */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-50 border border-slate-200 rounded">
-            <div className="space-y-2">
-              <label className="block text-xs font-semibold text-slate-700">Primary Banner Image</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={editing.heroImage || ''}
-                  onChange={(e) => setEditing({ ...editing, heroImage: e.target.value })}
-                  placeholder="/uploads/... or image URL"
-                  className="flex-1 px-3 py-2 text-xs border border-slate-300 rounded bg-white"
-                />
-                <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-[#0B192C] text-white rounded">
-                  <Upload className="w-3.5 h-3.5" />
-                  <span>{uploadingImg ? '...' : 'Upload'}</span>
-                  <input type="file" accept="image/*" onChange={handleHeroUpload} className="hidden" />
-                </label>
-              </div>
-              {editing.heroImage && (
-                <div className="h-28 w-48 rounded overflow-hidden border border-slate-200">
-                  <ResilientImage src={editing.heroImage} alt="Hero preview" />
-                </div>
-              )}
+          {/* Mobile-First Photo Pickers */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <SingleImageField
+                label="Project Logo (optional)"
+                value={editing.projectLogo || ''}
+                allowClear
+                titleHint={`${editing.name || 'Project'} Logo`}
+                onChange={(nextUrl) => setEditing({ ...editing, projectLogo: nextUrl })}
+              />
+              <SingleImageField
+                label="Primary Project Cover Photo"
+                value={editing.heroImage || ''}
+                titleHint={`${editing.name || 'Project'} Cover`}
+                onChange={(nextUrl) =>
+                  setEditing({
+                    ...editing,
+                    heroImage: nextUrl,
+                    gallery: nextUrl
+                      ? Array.from(new Set([nextUrl, ...(editing.gallery || [])]))
+                      : editing.gallery || [],
+                  })
+                }
+              />
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-xs font-semibold text-slate-700">
-                Scheme Gallery ({(editing.gallery || []).length} images)
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={galleryUrlInput}
-                  onChange={(e) => setGalleryUrlInput(e.target.value)}
-                  placeholder="Paste image URL"
-                  className="flex-1 px-3 py-2 text-xs border border-slate-300 rounded bg-white"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (galleryUrlInput.trim()) {
-                      setEditing({
-                        ...editing,
-                        gallery: [...(editing.gallery || []), galleryUrlInput.trim()],
-                      });
-                      setGalleryUrlInput('');
-                    }
-                  }}
-                  className="px-3 py-2 text-xs font-semibold border border-slate-300 bg-white rounded"
-                >
-                  Add URL
-                </button>
-                <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-[#0B192C] text-white rounded">
-                  <Upload className="w-3.5 h-3.5" />
-                  <span>Upload</span>
-                  <input type="file" accept="image/*" onChange={handleGalleryUpload} className="hidden" />
-                </label>
-              </div>
-
-              <div className="flex flex-wrap gap-2 pt-1">
-                {(editing.gallery || []).map((g, idx) => (
-                  <div key={idx} className="relative w-20 h-14 rounded overflow-hidden border border-slate-300 group">
-                    <ResilientImage src={g} alt={`Gallery ${idx + 1}`} />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setEditing({
-                          ...editing,
-                          gallery: (editing.gallery || []).filter((_, i) => i !== idx),
-                        })
-                      }
-                      className="absolute top-0.5 right-0.5 bg-black/75 text-white rounded p-0.5"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <MultiImageGalleryField
+              label="Project Gallery Photos"
+              images={editing.gallery || []}
+              titlePrefix={`${editing.name || 'Project'} Gallery`}
+              showCoverBadge
+              onChange={(nextGallery) => setEditing({ ...editing, gallery: nextGallery })}
+            />
           </div>
 
           {/* Plot Categories Editor */}
@@ -568,9 +497,9 @@ export const SchemesAdminModule: React.FC<SchemesAdminModuleProps> = ({ onManage
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Scheme Contact Advisor</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Project Contact Advisor</label>
               <input
                 type="text"
                 value={editing.contactPerson || ''}
@@ -584,6 +513,16 @@ export const SchemesAdminModule: React.FC<SchemesAdminModuleProps> = ({ onManage
                 type="text"
                 value={editing.contactPhone || ''}
                 onChange={(e) => setEditing({ ...editing, contactPhone: e.target.value })}
+                className="w-full px-3 py-2 text-xs font-mono-num border border-slate-300 rounded"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">WhatsApp Number</label>
+              <input
+                type="text"
+                value={editing.whatsappNumber || ''}
+                onChange={(e) => setEditing({ ...editing, whatsappNumber: e.target.value })}
+                placeholder="+92 300 8459920"
                 className="w-full px-3 py-2 text-xs font-mono-num border border-slate-300 rounded"
               />
             </div>
@@ -638,140 +577,305 @@ export const SchemesAdminModule: React.FC<SchemesAdminModuleProps> = ({ onManage
           </div>
         </form>
       ) : (
-        <div className="bg-white border border-slate-200 rounded-md overflow-hidden">
+        <div className="space-y-4">
           {loading ? (
-            <div className="p-10 text-center text-xs text-slate-500">Loading housing schemes...</div>
+            <div className="bg-white border border-slate-200 rounded-md p-10 text-center text-xs text-slate-500">
+              Loading projects...
+            </div>
+          ) : schemes.length === 0 ? (
+            <div className="bg-white border border-slate-200 rounded-md p-10 text-center text-xs text-slate-500">
+              No projects found. Tap “Add New Project” above to create your first project.
+            </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-600">
-                    <th className="py-3 px-4 font-semibold">Society Name &amp; Location</th>
-                    <th className="py-3 px-4 font-semibold">Plots Inside Society</th>
-                    <th className="py-3 px-4 font-semibold">Visibility</th>
-                    <th className="py-3 px-4 font-semibold">Featured</th>
-                    <th className="py-3 px-4 font-semibold text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 text-sm">
-                  {schemes.map((s) => {
-                    const societyPlotsCount = properties.filter((p) => p.schemeId === s.id).length;
-                    return (
-                      <tr key={s.id} className="hover:bg-slate-50/70">
-                        <td className="py-3.5 px-4">
-                          <div className="font-semibold text-slate-900 flex items-center gap-2">
-                            <span>{s.name}</span>
-                            {s.published && (
-                              <a
-                                href={`/schemes/${s.slug}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-slate-400 hover:text-[#0B192C]"
-                                title="Open dedicated society page"
-                              >
-                                <ExternalLink className="w-3.5 h-3.5" />
-                              </a>
-                            )}
+            <>
+              {/* Mobile Card View (Zero Horizontal Overflow on Android/iPhone) */}
+              <div className="grid grid-cols-1 gap-4 md:hidden">
+                {schemes.map((s) => {
+                  const societyPlotsCount = properties.filter((p) => p.schemeId === s.id).length;
+                  const plansCount = s.paymentPlans?.length || 0;
+                  const updatesCount = s.developmentUpdates?.length || 0;
+                  return (
+                    <div key={s.id} className="bg-white border border-slate-200 rounded-md p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500">
+                            <span className="font-semibold text-[#9F7A31]">{s.status || 'Ongoing'}</span>
+                            <span aria-hidden="true">·</span>
+                            <span>{s.published ? 'Published' : 'Draft'}</span>
+                            {s.featured ? (
+                              <>
+                                <span aria-hidden="true">·</span>
+                                <span className="font-semibold text-[#0B192C]">Featured</span>
+                              </>
+                            ) : null}
                           </div>
-                          <p className="text-xs text-slate-500">{s.location}</p>
-                        </td>
-                        <td className="py-3.5 px-4 text-xs whitespace-nowrap">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-mono-num font-semibold text-slate-800">
-                              {societyPlotsCount} {societyPlotsCount === 1 ? 'listing' : 'listings'}
-                            </span>
-                            <span className="text-slate-400">·</span>
-                            <span className="text-slate-500">{s.plotCategories.length} plot sizes</span>
-                          </div>
-                          {onManageSocietyPlots && (
-                            <div className="mt-1.5 flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => onManageSocietyPlots(s.id, false)}
-                                className="text-[11px] font-semibold text-[#0B192C] hover:text-[#9F7A31] underline"
-                              >
-                                View Plots
-                              </button>
-                              <span className="text-slate-300">|</span>
-                              <button
-                                type="button"
-                                onClick={() => onManageSocietyPlots(s.id, true)}
-                                className="text-[11px] font-semibold text-[#9F7A31] hover:underline"
-                              >
-                                + Add Plot Here
-                              </button>
-                            </div>
-                          )}
-                        </td>
-                        <td className="py-3.5 px-4">
+                          <h3 className="font-display text-xl font-semibold text-[#0B192C] mt-0.5">{s.name}</h3>
+                          <p className="text-xs text-slate-500 line-clamp-1">{s.location}</p>
+                        </div>
+                        {s.published && (
+                          <a
+                            href={`/projects/${s.slug}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 text-slate-500 hover:text-[#0B192C] shrink-0"
+                            aria-label={`Open ${s.name}`}
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 text-[11px] font-mono-num text-slate-600">
+                        <span>{societyPlotsCount} Plots</span>
+                        <span>·</span>
+                        <span>{s.gallery.length} Photos</span>
+                        <span>·</span>
+                        <span>{plansCount} Plans</span>
+                        <span>·</span>
+                        <span>{updatesCount} Updates</span>
+                      </div>
+
+                      {onOpenProjectSection && (
+                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+                          <button
+                            type="button"
+                            onClick={() => onOpenProjectSection('project-info', s.id)}
+                            className="px-3 py-2 text-xs font-semibold border border-slate-200 rounded text-slate-800"
+                          >
+                            Info &amp; Facilities
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onOpenProjectSection('project-gallery', s.id)}
+                            className="px-3 py-2 text-xs font-semibold border border-slate-200 rounded text-slate-800"
+                          >
+                            Gallery &amp; Logo
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onOpenProjectSection('project-payment-plans', s.id)}
+                            className="px-3 py-2 text-xs font-semibold border border-slate-200 rounded text-slate-800"
+                          >
+                            Payment Plans
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onOpenProjectSection('project-updates', s.id)}
+                            className="px-3 py-2 text-xs font-semibold border border-slate-200 rounded text-slate-800"
+                          >
+                            Site Updates
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                        <div className="flex items-center gap-3">
                           <button
                             type="button"
                             onClick={() => toggleSchemeFlag(s, 'published')}
-                            className={`text-xs font-semibold ${
-                              s.published ? 'text-emerald-700' : 'text-slate-500'
-                            } hover:underline`}
+                            className={`text-xs font-semibold ${s.published ? 'text-emerald-700' : 'text-slate-500'}`}
                           >
-                            {s.published ? 'Published (Click to Unpublish)' : 'Draft (Click to Publish)'}
+                            {s.published ? 'Unpublish' : 'Publish'}
                           </button>
-                        </td>
-                        <td className="py-3.5 px-4">
                           <button
                             type="button"
                             onClick={() => toggleSchemeFlag(s, 'featured')}
                             className={`inline-flex items-center gap-1 text-xs font-semibold ${
-                              s.featured ? 'text-[#9F7A31]' : 'text-slate-400 hover:text-slate-700'
+                              s.featured ? 'text-[#9F7A31]' : 'text-slate-400'
                             }`}
                           >
-                            <Star className={`w-4 h-4 ${s.featured ? 'fill-current' : ''}`} />
-                            <span>{s.featured ? 'Featured' : 'Standard'}</span>
+                            <Star className={`w-3.5 h-3.5 ${s.featured ? 'fill-current' : ''}`} />
+                            <span>{s.featured ? 'Featured' : 'Feature'}</span>
                           </button>
-                        </td>
-                        <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                          <div className="inline-flex items-center gap-2">
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => startEdit(s)}
+                            className="px-3 py-1.5 text-xs font-semibold bg-[#0B192C] text-white rounded"
+                          >
+                            Full Edit
+                          </button>
+                          {confirmDeleteId === s.id ? (
                             <button
                               type="button"
-                              onClick={() => startEdit(s)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium border border-slate-200 rounded hover:border-[#0B192C]"
+                              onClick={() => handleDelete(s.id)}
+                              className="px-3 py-1.5 text-xs font-semibold bg-rose-600 text-white rounded"
                             >
-                              <Edit3 className="w-3.5 h-3.5" />
-                              <span>Edit</span>
+                              Confirm Delete
                             </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setConfirmDeleteId(s.id)}
+                              className="p-2 text-rose-600"
+                              aria-label={`Delete ${s.name}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
 
-                            {confirmDeleteId === s.id ? (
-                              <div className="inline-flex items-center gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() => handleDelete(s.id)}
-                                  className="px-2.5 py-1.5 text-xs font-semibold bg-rose-600 text-white rounded"
-                                >
-                                  Confirm
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setConfirmDeleteId(null)}
-                                  className="px-2 py-1.5 text-xs text-slate-600"
-                                >
-                                  Cancel
-                                </button>
+              {/* Desktop Table View */}
+              <div className="hidden md:block bg-white border border-slate-200 rounded-md overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-600">
+                        <th className="py-3 px-4 font-semibold">Project Name &amp; Status</th>
+                        <th className="py-3 px-4 font-semibold">Quick Manage Sections</th>
+                        <th className="py-3 px-4 font-semibold">Visibility</th>
+                        <th className="py-3 px-4 font-semibold">Featured</th>
+                        <th className="py-3 px-4 font-semibold text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 text-sm">
+                      {schemes.map((s) => {
+                        const societyPlotsCount = properties.filter((p) => p.schemeId === s.id).length;
+                        return (
+                          <tr key={s.id} className="hover:bg-slate-50/70">
+                            <td className="py-3.5 px-4">
+                              <div className="font-semibold text-slate-900 flex items-center gap-2">
+                                <span>{s.name}</span>
+                                <span className="text-[11px] font-medium text-[#9F7A31]">
+                                  · {s.status || 'Ongoing'}
+                                </span>
+                                {s.published && (
+                                  <a
+                                    href={`/projects/${s.slug}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-slate-400 hover:text-[#0B192C]"
+                                    title="Open dedicated project page"
+                                  >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                  </a>
+                                )}
                               </div>
-                            ) : (
+                              <p className="text-xs text-slate-500">{s.location}</p>
+                            </td>
+                            <td className="py-3.5 px-4 text-xs">
+                              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                                {onOpenProjectSection && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => onOpenProjectSection('project-info', s.id)}
+                                      className="font-semibold text-[#0B192C] hover:text-[#9F7A31] underline"
+                                    >
+                                      Info
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => onOpenProjectSection('project-gallery', s.id)}
+                                      className="font-semibold text-[#0B192C] hover:text-[#9F7A31] underline"
+                                    >
+                                      Gallery ({s.gallery.length})
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => onOpenProjectSection('project-payment-plans', s.id)}
+                                      className="font-semibold text-[#0B192C] hover:text-[#9F7A31] underline"
+                                    >
+                                      Plans ({s.paymentPlans?.length || 0})
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => onOpenProjectSection('project-updates', s.id)}
+                                      className="font-semibold text-[#0B192C] hover:text-[#9F7A31] underline"
+                                    >
+                                      Updates ({s.developmentUpdates?.length || 0})
+                                    </button>
+                                  </>
+                                )}
+                                {onManageSocietyPlots && (
+                                  <button
+                                    type="button"
+                                    onClick={() => onManageSocietyPlots(s.id, false)}
+                                    className="font-semibold text-[#9F7A31] hover:underline"
+                                  >
+                                    Plots ({societyPlotsCount})
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4">
                               <button
                                 type="button"
-                                onClick={() => setConfirmDeleteId(s.id)}
-                                className="p-1.5 text-slate-400 hover:text-rose-600"
-                                title="Delete scheme"
+                                onClick={() => toggleSchemeFlag(s, 'published')}
+                                className={`text-xs font-semibold ${
+                                  s.published ? 'text-emerald-700' : 'text-slate-500'
+                                } hover:underline`}
                               >
-                                <Trash2 className="w-4 h-4" />
+                                {s.published ? 'Published' : 'Draft (Hidden)'}
                               </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <button
+                                type="button"
+                                onClick={() => toggleSchemeFlag(s, 'featured')}
+                                className={`inline-flex items-center gap-1 text-xs font-semibold ${
+                                  s.featured ? 'text-[#9F7A31]' : 'text-slate-400 hover:text-slate-700'
+                                }`}
+                              >
+                                <Star className={`w-4 h-4 ${s.featured ? 'fill-current' : ''}`} />
+                                <span>{s.featured ? 'Featured' : 'Standard'}</span>
+                              </button>
+                            </td>
+                            <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                              <div className="inline-flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => startEdit(s)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium border border-slate-200 rounded hover:border-[#0B192C]"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                  <span>Edit</span>
+                                </button>
+
+                                {confirmDeleteId === s.id ? (
+                                  <div className="inline-flex items-center gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDelete(s.id)}
+                                      className="px-2.5 py-1.5 text-xs font-semibold bg-rose-600 text-white rounded"
+                                    >
+                                      Confirm
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setConfirmDeleteId(null)}
+                                      className="px-2 py-1.5 text-xs text-slate-600"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfirmDeleteId(s.id)}
+                                    className="p-1.5 text-slate-400 hover:text-rose-600"
+                                    title="Delete project"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
           )}
         </div>
       )}
@@ -803,8 +907,6 @@ export const PropertiesAdminModule: React.FC<PropertiesAdminModuleProps> = ({
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<Partial<PropertyItem> | null>(null);
   const [featuresText, setFeaturesText] = useState('');
-  const [imgUrlInput, setImgUrlInput] = useState('');
-  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
@@ -871,26 +973,6 @@ export const PropertiesAdminModule: React.FC<PropertiesAdminModuleProps> = ({
     });
     setFeaturesText(prop.features.join('\n'));
     setFeedback(null);
-  };
-
-  const handleUploadPropertyImg = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !editing) return;
-    setUploading(true);
-    try {
-      const res = await uploadMediaRequest<{ asset: MediaAsset }>(
-        '/api/admin/media/upload',
-        file,
-        editing.title || 'Property Photo'
-      );
-      setEditing((prev) =>
-        prev ? { ...prev, images: [...(prev.images || []), res.asset.url] } : prev
-      );
-    } catch (err) {
-      setFeedback({ type: 'err', text: err instanceof Error ? err.message : 'Upload failed.' });
-    } finally {
-      setUploading(false);
-    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -1179,58 +1261,14 @@ export const PropertiesAdminModule: React.FC<PropertiesAdminModuleProps> = ({
             />
           </div>
 
-          {/* Multi-Image Uploader */}
-          <div className="p-4 bg-slate-50 border border-slate-200 rounded space-y-3">
-            <label className="block text-xs font-semibold text-slate-800">
-              Property Photographs ({(editing.images || []).length})
-            </label>
-            <div className="flex flex-wrap items-center gap-2">
-              <input
-                type="text"
-                value={imgUrlInput}
-                onChange={(e) => setImgUrlInput(e.target.value)}
-                placeholder="Paste image URL or upload file"
-                className="flex-1 min-w-[200px] px-3 py-2 text-xs border border-slate-300 rounded bg-white"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  if (imgUrlInput.trim()) {
-                    setEditing({ ...editing, images: [...(editing.images || []), imgUrlInput.trim()] });
-                    setImgUrlInput('');
-                  }
-                }}
-                className="px-3 py-2 text-xs font-semibold border border-slate-300 bg-white rounded"
-              >
-                Add URL
-              </button>
-              <label className="cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-[#0B192C] text-white rounded">
-                <Upload className="w-3.5 h-3.5" />
-                <span>{uploading ? 'Uploading...' : 'Upload Photo'}</span>
-                <input type="file" accept="image/*" onChange={handleUploadPropertyImg} className="hidden" />
-              </label>
-            </div>
-
-            <div className="flex flex-wrap gap-2.5">
-              {(editing.images || []).map((img, i) => (
-                <div key={i} className="relative w-24 h-16 rounded overflow-hidden border border-slate-300">
-                  <ResilientImage src={img} alt={`Property ${i + 1}`} />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setEditing({
-                        ...editing,
-                        images: (editing.images || []).filter((_, idx) => idx !== i),
-                      })
-                    }
-                    className="absolute top-0.5 right-0.5 bg-black/75 text-white rounded p-0.5"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* Mobile-First Multi-Photo Gallery Picker */}
+          <MultiImageGalleryField
+            label="Property Photographs"
+            images={editing.images || []}
+            titlePrefix={editing.title || 'Property Photo'}
+            showCoverBadge
+            onChange={(nextImages) => setEditing({ ...editing, images: nextImages })}
+          />
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">

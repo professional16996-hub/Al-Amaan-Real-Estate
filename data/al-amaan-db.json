@@ -3,14 +3,14 @@
     {
       "id": "usr_admin_primary",
       "name": "Tariq Mehmood — Executive Director",
-      "email": "admin@alamaanestate.com",
+      "email": "admin@alamaan.com",
       "phone": "+92 300 8459920",
       "role": "super_admin",
       "active": true,
       "favoritePropertyIds": [],
-      "passwordHash": "$2b$10$cqqn2WdyZndqBHZJEnIQt.DBlovJzc/BJ74VJgM3b0eBdtNZ1y4QC",
+      "passwordHash": "$2b$10$Ony8IK2hfJ8FjFkQ5jbnK.OgraaeHfRHTGOMQ6DlsMiTKQT23p8A.",
       "createdAt": "2026-11-12T17:50:35.441Z",
-      "lastLoginAt": "2026-11-12T17:50:35.441Z"
+      "lastLoginAt": "2026-11-23T18:21:09.953Z"
     },
     {
       "id": "usr_cust_kamran",
@@ -23,8 +23,9 @@
         "prop_ajg_5m_rose",
         "prop_ajg_10m_house"
       ],
-      "passwordHash": "$2b$10$9Hs4VbyoZlcdav9L7Wh9k.m2V0U3idul.ggOhSlYs0qqn.CQg3wIW",
-      "createdAt": "2026-11-12T17:50:35.441Z"
+      "passwordHash": "$2b$10$VHdU/YkkNySurOpfyXHtUu9Z55HWGD0Lv1X0maMLMZSa5mJvwSqIC",
+      "createdAt": "2026-11-12T17:50:35.441Z",
+      "lastLoginAt": "2026-11-23T17:01:45.128Z"
     },
     {
       "id": "usr_cust_ayesha",
@@ -36,7 +37,7 @@
       "favoritePropertyIds": [
         "prop_ajg_4m_comm"
       ],
-      "passwordHash": "$2b$10$9Hs4VbyoZlcdav9L7Wh9k.m2V0U3idul.ggOhSlYs0qqn.CQg3wIW",
+      "passwordHash": "$2b$10$VHdU/YkkNySurOpfyXHtUu9Z55HWGD0Lv1X0maMLMZSa5mJvwSqIC",
       "createdAt": "2026-11-12T17:50:35.441Z"
     }
   ],
@@ -131,7 +132,65 @@
       "featured": true,
       "displayOrder": 1,
       "createdAt": "2026-11-12T17:50:35.441Z",
-      "updatedAt": "2026-11-12T17:50:35.441Z"
+      "updatedAt": "2026-11-12T17:50:35.441Z",
+      "status": "Ongoing",
+      "projectLogo": "",
+      "whatsappNumber": "+92 300 8459920",
+      "paymentPlans": [
+        {
+          "id": "pp_ajg_3m",
+          "planName": "Phase 2 Easy Installment Plan",
+          "plotSize": "3 Marla Residential",
+          "totalPrice": 3150000,
+          "downPayment": 650000,
+          "installmentDuration": "36 Months (3 Years)",
+          "monthlyInstallment": 45000,
+          "possessionCharges": "PKR 350,000 at Possession",
+          "notes": "6 half-yearly balloon installments included; ideal for monthly salaried & overseas buyers."
+        },
+        {
+          "id": "pp_ajg_5m",
+          "planName": "Jasmine & Rose Possession Schedule",
+          "plotSize": "5 Marla Residential",
+          "totalPrice": 5250000,
+          "downPayment": 1250000,
+          "installmentDuration": "24 Months (2 Years)",
+          "monthlyInstallment": 95000,
+          "possessionCharges": "Immediate Possession Available on 50%",
+          "notes": "Direct society transfer with verified NDC and electricity meter readiness."
+        },
+        {
+          "id": "pp_ajg_4mc",
+          "planName": "Main Boulevard Commercial Plan",
+          "plotSize": "4 Marla Commercial",
+          "totalPrice": 18500000,
+          "downPayment": 5500000,
+          "installmentDuration": "18 Months",
+          "monthlyInstallment": 500000,
+          "possessionCharges": "On Ground Commercial Possession",
+          "notes": "Eligible for multi-story retail & corporate office construction."
+        }
+      ],
+      "developmentUpdates": [
+        {
+          "id": "upd_ajg_1",
+          "title": "Jasmine Extension Street Carpet & Sewerage Lines Completed",
+          "phase": "Phase 2 · Jasmine Extension",
+          "date": "November 2026",
+          "progressPercent": 92,
+          "summary": "Asphalt carpeting on 40-ft internal streets and main trunk storm drainage connections are finalized; street lighting poles energized.",
+          "image": "/src/assets/images/property_residential_plot_1794504546024.jpg"
+        },
+        {
+          "id": "upd_ajg_2",
+          "title": "Main Boulevard Commercial Corridor Underground Grid Active",
+          "phase": "Commercial Broadway",
+          "date": "October 2026",
+          "progressPercent": 100,
+          "summary": "Dedicated 11kV underground grid feeders commissioned for newly constructed commercial plazas and banking square.",
+          "image": "/src/assets/images/property_commercial_plaza_1794504544918.jpg"
+        }
+      ]
     },
     {
       "id": "scheme_al_noor_orchard",
@@ -207,7 +266,45 @@
       "featured": false,
       "displayOrder": 2,
       "createdAt": "2026-11-12T17:50:35.441Z",
-      "updatedAt": "2026-11-12T17:50:35.441Z"
+      "updatedAt": "2026-11-12T17:50:35.441Z",
+      "status": "Ongoing",
+      "projectLogo": "",
+      "whatsappNumber": "+92 300 8459920",
+      "paymentPlans": [
+        {
+          "id": "pp_ano_3m",
+          "planName": "West Marina Executive Installment Schedule",
+          "plotSize": "3 Marla Residential",
+          "totalPrice": 2650000,
+          "downPayment": 550000,
+          "installmentDuration": "36 Months",
+          "monthlyInstallment": 38000,
+          "possessionCharges": "Balloted Allocation",
+          "notes": "LDA-approved file with computerized ledger verification."
+        },
+        {
+          "id": "pp_ano_5m",
+          "planName": "West Marina Block Possession Plan",
+          "plotSize": "5 Marla Residential",
+          "totalPrice": 4450000,
+          "downPayment": 1100000,
+          "installmentDuration": "24 Months",
+          "monthlyInstallment": 85000,
+          "possessionCharges": "PKR 400,000 at Possession",
+          "notes": "Park-facing & corner options available on priority allocation."
+        }
+      ],
+      "developmentUpdates": [
+        {
+          "id": "upd_ano_1",
+          "title": "West Marina Main Boulevard Curbstone & Greenbelt Landscaping",
+          "phase": "West Marina Sector",
+          "date": "November 2026",
+          "progressPercent": 78,
+          "summary": "210-ft main avenue earthwork, dual carriageway carpeting, and central median plantation completed up to Block C.",
+          "image": "/src/assets/images/hero_lahore_society_1794504538304.jpg"
+        }
+      ]
     }
   ],
   "properties": [
@@ -506,8 +603,8 @@
     },
     {
       "id": "nav_h2",
-      "label": "Schemes",
-      "path": "/schemes",
+      "label": "Projects",
+      "path": "/projects",
       "isExternal": false,
       "visible": true,
       "order": 2,
@@ -551,8 +648,8 @@
     },
     {
       "id": "nav_f2",
-      "label": "All Housing Schemes",
-      "path": "/schemes",
+      "label": "All Projects",
+      "path": "/projects",
       "isExternal": false,
       "visible": true,
       "order": 2,
@@ -890,9 +987,151 @@
     "aboutVision": "To set the benchmark for institutional transparency, customer accountability, and sustainable urban development in Pakistan’s real estate sector.",
     "aboutImage": "/src/assets/images/about_agency_office_1794504546500.jpg",
     "privacyPolicyContent": "Last Updated: November 2026\n\n1. Information We Collect\nAl Amaan Real Estate & Developers collects personal contact details—including your full name, phone/WhatsApp number, email address, and property preferences—strictly when you register for a client account, save favorite listings, or submit a property or housing scheme inquiry.\n\n2. How We Use Your Information\nYour information is used exclusively to respond to your property inquiries, arrange verified site inspections in Al Jalil Garden and partner Lahore housing schemes, maintain your saved property portfolio, and communicate official allotment or transfer updates.\n\n3. Confidentiality & Data Security\nWe never sell, rent, or trade client contact registries to third-party telemarketers or external agencies. Account passwords are encrypted using industry-standard cryptographic hashing, and client dashboard records are isolated with strict role-based access controls.\n\n4. Client Rights & Account Control\nRegistered clients may review, update, or request deletion of their personal profile and inquiry records at any time via the Client Account Portal or by emailing info@alamaanestate.com.",
-    "termsConditionsContent": "Last Updated: November 2026\n\n1. Scope of Advisory & Listings\nAll property prices (quoted in Pakistani Rupees — PKR), plot availability statuses (Available, Reserved, Sold), and housing scheme installment schedules published on the Al Amaan Real Estate & Developers website reflect verified records at the time of publication. Due to active market trading in Lahore real estate, final prices and plot availability are confirmed in writing prior to token (Bayana) execution.\n\n2. Official Verification & Transfer Protocol\nAll plot and house transactions facilitated by Al Amaan Real Estate & Developers are executed through documented agreements accompanied by official housing society No-Demand Certificate (NDC) and allotment verification at the respective society transfer office.\n\n3. Client Account Responsibilities\nUsers registering on the Client Portal agree to provide accurate contact credentials and maintain the confidentiality of their login password. Automated scraping, fraudulent inquiries, or unauthorized access attempts are strictly prohibited.\n\n4. Governing Law\nThese Terms & Conditions are governed by the laws of the Islamic Republic of Pakistan, with exclusive jurisdiction vested in the courts of Lahore, Punjab."
+    "termsConditionsContent": "Last Updated: November 2026\n\n1. Scope of Advisory & Listings\nAll property prices (quoted in Pakistani Rupees — PKR), plot availability statuses (Available, Reserved, Sold), and housing scheme installment schedules published on the Al Amaan Real Estate & Developers website reflect verified records at the time of publication. Due to active market trading in Lahore real estate, final prices and plot availability are confirmed in writing prior to token (Bayana) execution.\n\n2. Official Verification & Transfer Protocol\nAll plot and house transactions facilitated by Al Amaan Real Estate & Developers are executed through documented agreements accompanied by official housing society No-Demand Certificate (NDC) and allotment verification at the respective society transfer office.\n\n3. Client Account Responsibilities\nUsers registering on the Client Portal agree to provide accurate contact credentials and maintain the confidentiality of their login password. Automated scraping, fraudulent inquiries, or unauthorized access attempts are strictly prohibited.\n\n4. Governing Law\nThese Terms & Conditions are governed by the laws of the Islamic Republic of Pakistan, with exclusive jurisdiction vested in the courts of Lahore, Punjab.",
+    "moreProjectsHeading": "More Projects & Development Portfolio",
+    "moreProjectsSummary": "Discover ongoing, upcoming, and completed real estate projects developed and marketed by Al Amaan Real Estate & Developers across Lahore."
   },
   "activityLogs": [
+    {
+      "id": "log_318cca2d84f5",
+      "actorId": "usr_admin_primary",
+      "actorName": "Tariq Mehmood — Executive Director",
+      "actorRole": "super_admin",
+      "action": "NOTIFICATION_DELETED",
+      "module": "Notifications",
+      "details": "Removed notification \"Verification Test Notification\".",
+      "createdAt": "2026-11-23T18:21:09.984Z"
+    },
+    {
+      "id": "log_6a85134bf013",
+      "actorId": "usr_admin_primary",
+      "actorName": "Tariq Mehmood — Executive Director",
+      "actorRole": "super_admin",
+      "action": "NOTIFICATION_BROADCAST",
+      "module": "Notifications",
+      "details": "Broadcasted website notification \"Verification Test Notification\".",
+      "createdAt": "2026-11-23T18:21:09.974Z"
+    },
+    {
+      "id": "log_4da9ef1a5c6d",
+      "actorId": "usr_admin_primary",
+      "actorName": "Tariq Mehmood — Executive Director",
+      "actorRole": "super_admin",
+      "action": "ADMIN_LOGIN",
+      "module": "Authentication",
+      "details": "Administrator signed in (admin@alamaan.com).",
+      "createdAt": "2026-11-23T18:21:09.954Z"
+    },
+    {
+      "id": "log_39e31ed0d537",
+      "actorId": "usr_admin_primary",
+      "actorName": "Tariq Mehmood — Executive Director",
+      "actorRole": "super_admin",
+      "action": "ADMIN_LOGIN",
+      "module": "Authentication",
+      "details": "Administrator signed in (admin@alamaan.com).",
+      "createdAt": "2026-11-23T17:59:31.808Z"
+    },
+    {
+      "id": "log_0bd844288046",
+      "actorId": "usr_admin_primary",
+      "actorName": "Tariq Mehmood — Executive Director",
+      "actorRole": "super_admin",
+      "action": "SCHEME_DELETED",
+      "module": "Schemes",
+      "details": "Deleted housing scheme \"E2E Verify Enclave\".",
+      "createdAt": "2026-11-23T17:52:19.119Z"
+    },
+    {
+      "id": "log_10ff7b0b5bae",
+      "actorId": "usr_admin_primary",
+      "actorName": "Tariq Mehmood — Executive Director",
+      "actorRole": "super_admin",
+      "action": "PROJECT_UPDATED",
+      "module": "Projects",
+      "details": "Updated project \"E2E Verify Enclave\" (published: true).",
+      "createdAt": "2026-11-23T17:52:19.112Z"
+    },
+    {
+      "id": "log_30b9862accf8",
+      "actorId": "usr_admin_primary",
+      "actorName": "Tariq Mehmood — Executive Director",
+      "actorRole": "super_admin",
+      "action": "PROJECT_CREATED",
+      "module": "Projects",
+      "details": "Added project \"E2E Verify Enclave\" (Upcoming).",
+      "createdAt": "2026-11-23T17:52:19.095Z"
+    },
+    {
+      "id": "log_8ab45952ca57",
+      "actorId": "usr_admin_primary",
+      "actorName": "Tariq Mehmood — Executive Director",
+      "actorRole": "super_admin",
+      "action": "ADMIN_LOGIN",
+      "module": "Authentication",
+      "details": "Administrator signed in (admin@alamaan.com).",
+      "createdAt": "2026-11-23T17:52:19.080Z"
+    },
+    {
+      "id": "log_2760fce4e7f5",
+      "actorId": "usr_admin_primary",
+      "actorName": "Tariq Mehmood — Executive Director",
+      "actorRole": "super_admin",
+      "action": "MEDIA_DELETED",
+      "module": "Media",
+      "details": "Deleted uploaded image \"Mobile Test Verification\".",
+      "createdAt": "2026-11-23T17:11:02.238Z"
+    },
+    {
+      "id": "log_d6368853f89e",
+      "actorId": "usr_admin_primary",
+      "actorName": "Tariq Mehmood — Executive Director",
+      "actorRole": "super_admin",
+      "action": "ADMIN_LOGIN",
+      "module": "Authentication",
+      "details": "Administrator signed in (admin@alamaan.com).",
+      "createdAt": "2026-11-23T17:11:02.204Z"
+    },
+    {
+      "id": "log_a72d67cf8368",
+      "actorId": "usr_admin_primary",
+      "actorName": "Tariq Mehmood — Executive Director",
+      "actorRole": "super_admin",
+      "action": "MEDIA_UPLOADED",
+      "module": "Media",
+      "details": "Uploaded image \"Mobile Test Verification\".",
+      "createdAt": "2026-11-23T17:10:49.224Z"
+    },
+    {
+      "id": "log_725245269818",
+      "actorId": "usr_admin_primary",
+      "actorName": "Tariq Mehmood — Executive Director",
+      "actorRole": "super_admin",
+      "action": "ADMIN_LOGIN",
+      "module": "Authentication",
+      "details": "Administrator signed in (admin@alamaan.com).",
+      "createdAt": "2026-11-23T17:10:49.143Z"
+    },
+    {
+      "id": "log_cedfd5e13c3c",
+      "actorId": "usr_admin_primary",
+      "actorName": "Tariq Mehmood — Executive Director",
+      "actorRole": "super_admin",
+      "action": "PROFILE_UPDATED",
+      "module": "Admin Profile",
+      "details": "Updated administrator profile (admin@alamaan.com).",
+      "createdAt": "2026-11-23T17:01:45.391Z"
+    },
+    {
+      "id": "log_5b7d01ac9030",
+      "actorId": "usr_admin_primary",
+      "actorName": "Tariq Mehmood — Executive Director",
+      "actorRole": "super_admin",
+      "action": "ADMIN_LOGIN",
+      "module": "Authentication",
+      "details": "Administrator signed in (admin@alamaan.com).",
+      "createdAt": "2026-11-23T17:01:44.969Z"
+    },
     {
       "id": "log_init_1",
       "actorId": "usr_admin_primary",
@@ -902,6 +1141,35 @@
       "module": "Settings",
       "details": "Initialized production database with Al Jalil Garden featured scheme and initial Lahore property inventory.",
       "createdAt": "2026-11-12T17:50:35.441Z"
+    }
+  ],
+  "notifications": [
+    {
+      "id": "notif_init_ajg",
+      "title": "Al Jalil Garden — Phase 2 Possession & Installments",
+      "message": "3 & 5 Marla residential plots in Jasmine & Rose Extension now open with verified NDC transfer.",
+      "category": "project",
+      "link": "/projects/al-jalil-garden",
+      "targetAudience": "all",
+      "createdAt": "2026-11-23T18:20:14.101Z"
+    },
+    {
+      "id": "notif_init_dev",
+      "title": "Site Development Progress: West Marina Canal",
+      "message": "Main Sharaqpur Road access & underground utility ducting reached 78% completion.",
+      "category": "development",
+      "link": "/projects/al-noor-orchard-west-marina",
+      "targetAudience": "all",
+      "createdAt": "2026-11-23T18:20:14.101Z"
+    },
+    {
+      "id": "notif_init_prop",
+      "title": "New Verified Plots Available in Lahore",
+      "message": "Browse updated 5 Marla, 10 Marla, 1 Kanal, and commercial listings directly in our portfolio.",
+      "category": "property",
+      "link": "/properties",
+      "targetAudience": "all",
+      "createdAt": "2026-11-23T18:20:14.101Z"
     }
   ]
 }

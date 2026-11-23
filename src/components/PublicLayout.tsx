@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { ChevronDown, Menu, ShieldCheck, User, X } from 'lucide-react';
 import { useSite } from '../context/SiteContext';
 import { FloatingWhatsApp, WhatsAppLogo } from './WhatsAppIcon';
+import { NotificationBell } from './NotificationBell';
 import { buildWhatsAppUrl } from '../utils/formatters';
 
 export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -56,27 +57,27 @@ export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children
     : '#';
 
   return (
-    <div className="min-h-screen flex flex-col bg-white text-slate-900">
+    <div className="min-h-screen w-full max-w-full overflow-x-clip flex flex-col bg-white text-slate-900">
       {/* Strict 3-Zone Top Bar Contract */}
-      <header className="sticky top-0 z-40 h-16 bg-[#0B192C] text-white border-b border-white/10">
-        <div className="max-w-[1240px] mx-auto h-full px-5 sm:px-8 flex items-center justify-between gap-8">
+      <header className="sticky top-0 z-40 h-16 w-full bg-[#0B192C] text-white border-b border-white/10">
+        <div className="max-w-[1240px] mx-auto h-full px-4 sm:px-8 flex items-center justify-between gap-3 lg:gap-8">
           {/* Zone 1: Single-line Brand Wordmark */}
           <Link
             to="/"
-            className="font-display text-xl sm:text-2xl font-semibold tracking-wide text-white hover:text-[#D4AF37] transition-colors duration-150 whitespace-nowrap shrink-0 flex items-center gap-2.5"
+            className="font-display text-lg sm:text-2xl font-semibold tracking-wide text-white hover:text-[#D4AF37] transition-colors duration-150 whitespace-nowrap min-w-0 truncate flex items-center gap-2"
           >
             {data?.settings.logoUrl ? (
               <img
                 src={data.settings.logoUrl}
                 alt={siteName}
                 referrerPolicy="no-referrer"
-                className="h-8 w-auto object-contain"
+                className="h-7 sm:h-8 w-auto object-contain shrink-0"
               />
             ) : null}
-            <span>{shortBrand}</span>
+            <span className="truncate">{shortBrand}</span>
           </Link>
 
-          {/* Zone 2: 4–5 Clean Single-Line Text Navigation Links */}
+          {/* Zone 2: 4–5 Clean Single-Line Text Navigation Links (Desktop) */}
           <nav aria-label="Primary Navigation" className="hidden lg:flex items-center gap-7 text-sm font-medium text-slate-200">
             {headerNav.map((item) =>
               item.isExternal ? (
@@ -108,17 +109,17 @@ export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children
             )}
           </nav>
 
-          {/* Zone 3: Primary CTA + Customer Account Menu */}
-          <div className="flex items-center gap-2.5 shrink-0">
+          {/* Zone 3: Desktop CTA + Account Dropdown; Mobile Notification Bell + Three-Line Menu */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             <Link
               to="/contact"
-              className="hidden md:inline-flex items-center px-4 py-2 text-xs font-semibold tracking-wide bg-[#B89146] text-[#0B192C] rounded hover:bg-[#cfa95e] transition-colors duration-150 whitespace-nowrap shrink-0"
+              className="hidden lg:inline-flex items-center px-4 py-2 text-xs font-semibold tracking-wide bg-[#B89146] text-[#0B192C] rounded hover:bg-[#cfa95e] transition-colors duration-150 whitespace-nowrap shrink-0"
             >
               Schedule Consultation
             </Link>
 
-            {/* Customer Account Button & Dropdown */}
-            <div className="relative" ref={moreRef}>
+            {/* Desktop Customer Account Button & Dropdown (moved inside 3-line drawer on mobile) */}
+            <div className="hidden lg:block relative" ref={moreRef}>
               <button
                 type="button"
                 onClick={() => setMoreOpen((prev) => !prev)}
@@ -127,12 +128,7 @@ export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children
                 className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded border border-white/25 text-white hover:border-[#B89146] hover:text-[#D4AF37] transition-colors duration-150 whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-[#D4AF37]"
               >
                 <User className="w-3.5 h-3.5 text-[#D4AF37] shrink-0" />
-                <span className="hidden sm:inline">
-                  {customer ? customer.name.split(' ')[0] : 'Customer Account'}
-                </span>
-                <span className="sm:hidden">
-                  {customer ? customer.name.split(' ')[0] : 'Account'}
-                </span>
+                <span>{customer ? customer.name.split(' ')[0] : 'Customer Account'}</span>
                 <ChevronDown
                   className={`w-3.5 h-3.5 transition-transform duration-150 ${moreOpen ? 'rotate-180' : ''}`}
                 />
@@ -193,22 +189,26 @@ export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children
               )}
             </div>
 
-            {/* Mobile Hamburger Button */}
+            {/* Mobile & Desktop Notification Bell Right Next to Menu */}
+            <NotificationBell variant="dark-header" />
+
+            {/* Mobile Top-Right Three-Line Menu Button */}
             <button
               type="button"
               onClick={() => setMobileOpen((prev) => !prev)}
-              aria-label="Toggle navigation menu"
-              className="lg:hidden w-10 h-10 inline-flex items-center justify-center rounded text-slate-200 hover:text-white hover:bg-white/10 transition-colors"
+              aria-label="Open menu"
+              aria-expanded={mobileOpen}
+              className="lg:hidden w-10 h-10 -mr-1.5 inline-flex items-center justify-center rounded text-white hover:text-[#D4AF37] hover:bg-white/10 transition-colors"
             >
-              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
         </div>
 
-        {/* Mobile Drawer */}
+        {/* Mobile Three-Line Drawer (Navigation + Customer Account inside) */}
         {mobileOpen && (
-          <div className="lg:hidden bg-[#0B192C] border-b border-white/15 px-5 pt-3 pb-6 space-y-4 shadow-2xl">
-            <nav className="flex flex-col space-y-2.5">
+          <div className="lg:hidden bg-[#0B192C] border-b border-white/15 px-4 pt-3 pb-6 space-y-5 shadow-2xl max-h-[calc(100vh-4rem)] overflow-y-auto">
+            <nav className="flex flex-col divide-y divide-white/10">
               {headerNav.map((item) =>
                 item.isExternal ? (
                   <a
@@ -216,7 +216,7 @@ export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children
                     href={item.path}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm font-medium text-slate-200 py-1.5"
+                    className="text-sm font-medium text-slate-100 py-3"
                   >
                     {item.label}
                   </a>
@@ -224,57 +224,103 @@ export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children
                   <Link
                     key={item.id}
                     to={item.path}
-                    className="text-sm font-medium text-slate-200 hover:text-[#D4AF37] py-1.5"
+                    className="text-sm font-medium text-slate-100 hover:text-[#D4AF37] py-3"
                   >
                     {item.label}
                   </Link>
                 )
               )}
-              <Link to="/about" className="text-sm font-medium text-slate-200 hover:text-[#D4AF37] py-1.5">
+              <Link to="/about" className="text-sm font-medium text-slate-100 hover:text-[#D4AF37] py-3">
                 About Us
               </Link>
-              <Link to="/contact" className="text-sm font-medium text-slate-200 hover:text-[#D4AF37] py-1.5">
-                Contact Us
+              <Link to="/contact" className="text-sm font-medium text-slate-100 hover:text-[#D4AF37] py-3">
+                Schedule Consultation
               </Link>
             </nav>
 
-            <div className="pt-3 border-t border-white/10 flex flex-wrap items-center gap-3">
+            {/* Customer Account Section Inside Mobile Three-Line Menu */}
+            <div className="p-4 rounded-md bg-white/[0.06] border border-white/15 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-semibold text-[#D4AF37]">
+                <User className="w-4 h-4 shrink-0" />
+                <span>Customer Account</span>
+              </div>
+
               {customer ? (
-                <Link
-                  to="/dashboard"
-                  className="px-4 py-2.5 text-xs font-semibold bg-[#B89146] text-[#0B192C] rounded"
-                >
-                  Client Dashboard ({customer.name.split(' ')[0]})
-                </Link>
+                <div className="space-y-3">
+                  <div className="text-xs">
+                    <p className="font-semibold text-white truncate">{customer.name}</p>
+                    <p className="text-[11px] text-slate-300 truncate">{customer.email}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Link
+                      to="/dashboard"
+                      className="flex-1 text-center px-4 py-2.5 text-xs font-semibold bg-[#B89146] text-[#0B192C] rounded"
+                    >
+                      Client Dashboard
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await logoutCustomer();
+                        setMobileOpen(false);
+                        navigate('/');
+                      }}
+                      className="px-4 py-2.5 text-xs font-medium border border-white/25 text-white rounded hover:bg-white/10"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
               ) : (
-                <>
+                <div className="space-y-2.5">
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <Link
+                      to="/login"
+                      className="text-center px-3 py-2.5 text-xs font-semibold bg-[#B89146] text-[#0B192C] rounded"
+                    >
+                      Client Sign In
+                    </Link>
+                    <Link
+                      to="/register"
+                      className="text-center px-3 py-2.5 text-xs font-medium border border-white/25 text-white rounded hover:bg-white/10"
+                    >
+                      Create Account
+                    </Link>
+                  </div>
                   <Link
-                    to="/login"
-                    className="px-4 py-2.5 text-xs font-semibold bg-[#B89146] text-[#0B192C] rounded"
+                    to="/forgot-password"
+                    className="block text-xs text-slate-300 hover:text-[#D4AF37] pt-0.5"
                   >
-                    Client Sign In
+                    Forgot / Reset Password
                   </Link>
-                  <Link
-                    to="/register"
-                    className="px-4 py-2.5 text-xs font-medium border border-white/25 text-white rounded"
-                  >
-                    Create Account
-                  </Link>
-                </>
+                </div>
               )}
+            </div>
+
+            <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs">
               <Link
                 to={admin ? '/admin' : '/admin/login'}
-                className="px-3 py-2.5 text-xs font-medium text-slate-300 hover:text-[#D4AF37]"
+                className="inline-flex items-center gap-1.5 text-slate-300 hover:text-[#D4AF37] py-1"
               >
-                {admin ? 'Admin Panel' : 'Admin Login'}
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>{admin ? 'Admin Panel' : 'Admin Login'}</span>
               </Link>
+              <a
+                href={whatsappDirectUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-[#25D366] font-semibold py-1"
+              >
+                <WhatsAppLogo className="w-4 h-4" />
+                <span>WhatsApp</span>
+              </a>
             </div>
           </div>
         )}
       </header>
 
       {/* Main Content */}
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 w-full min-w-0 overflow-x-clip">{children}</main>
 
       {/* Quiet Luxury Footer */}
       <footer className="bg-[#07111E] text-slate-300 border-t border-white/10">

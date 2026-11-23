@@ -17,11 +17,18 @@
   html {
     font-family: var(--font-sans);
     scroll-behavior: smooth;
+    max-width: 100%;
     overflow-x: hidden;
+    overflow-x: clip;
+    overscroll-behavior-x: none;
   }
 
-  body {
+  body, #root {
+    max-width: 100%;
+    width: 100%;
     overflow-x: hidden;
+    overflow-x: clip;
+    overscroll-behavior-x: none;
     color: #0f172a;
     background-color: #ffffff;
   }

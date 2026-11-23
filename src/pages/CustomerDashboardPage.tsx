@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { Heart, LogOut, MessageSquare, Send, User } from 'lucide-react';
+import { Eye, EyeOff, Heart, LogOut, MessageSquare, Send, User } from 'lucide-react';
 import { useSite } from '../context/SiteContext';
 import { apiRequest } from '../services/api';
 import type { InquiryItem, PropertyItem } from '../types/models';
@@ -26,6 +26,7 @@ export const CustomerDashboardPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [showPasswords, setShowPasswords] = useState(false);
   const [profileMsg, setProfileMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
 
@@ -452,30 +453,42 @@ export const CustomerDashboardPage: React.FC = () => {
                   />
                 </div>
 
-                <div className="pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Current Password (only if changing)
-                    </label>
-                    <input
-                      type="password"
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      placeholder="Leave blank to keep current"
-                      className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded focus:outline-none focus:border-[#0B192C]"
-                    />
+                <div className="pt-4 border-t border-slate-100 space-y-3">
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswords((prev) => !prev)}
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 hover:text-[#0B192C]"
+                    >
+                      {showPasswords ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      <span>{showPasswords ? 'Hide Passwords' : 'Show Passwords'}</span>
+                    </button>
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      New Password
-                    </label>
-                    <input
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Min 6 characters"
-                      className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded focus:outline-none focus:border-[#0B192C]"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                        Current Password (only if changing)
+                      </label>
+                      <input
+                        type={showPasswords ? 'text' : 'password'}
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        placeholder="Leave blank to keep current"
+                        className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded focus:outline-none focus:border-[#0B192C]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                        New Password
+                      </label>
+                      <input
+                        type={showPasswords ? 'text' : 'password'}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Min 6 characters"
+                        className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded focus:outline-none focus:border-[#0B192C]"
+                      />
+                    </div>
                   </div>
                 </div>
 

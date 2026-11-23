@@ -8,6 +8,7 @@ import {
   ensureStorageDirectories,
   generateId,
   getDb,
+  pushNotification,
   recordActivity,
   sanitizeUser,
   saveDb,
@@ -29,14 +30,57 @@ import type {
   HousingScheme,
   InquiryStatus,
   NavItem,
+  NotificationCategory,
   PageSEOConfig,
   PlotCategory,
+  ProjectDevelopmentUpdate,
+  ProjectPaymentPlan,
+  ProjectStatus,
   PropertyCategory,
   PropertyItem,
   PropertyStatus,
   TestimonialItem,
   UserRole,
 } from '../src/types/models.ts';
+
+function normalizeProjectStatus(val: unknown): ProjectStatus {
+  return val === 'Upcoming' || val === 'Completed' ? val : 'Ongoing';
+}
+
+function normalizePaymentPlans(list: unknown): ProjectPaymentPlan[] {
+  if (!Array.isArray(list)) return [];
+  return list
+    .filter((p) => p && typeof p === 'object')
+    .map((p: Partial<ProjectPaymentPlan>) => ({
+      id: p.id || generateId('pp'),
+      planName: String(p.planName || 'Standard Payment Plan').trim(),
+      plotSize: String(p.plotSize || '5 Marla').trim(),
+      totalPrice: Number(p.totalPrice) || 0,
+      downPayment: Number(p.downPayment) || 0,
+      installmentDuration: String(p.installmentDuration || '24 Months').trim(),
+      monthlyInstallment: Number(p.monthlyInstallment) || 0,
+      possessionCharges: p.possessionCharges ? String(p.possessionCharges).trim() : '',
+      notes: p.notes ? String(p.notes).trim() : '',
+    }));
+}
+
+function normalizeDevelopmentUpdates(list: unknown): ProjectDevelopmentUpdate[] {
+  if (!Array.isArray(list)) return [];
+  return list
+    .filter((u) => u && typeof u === 'object')
+    .map((u: Partial<ProjectDevelopmentUpdate>) => ({
+      id: u.id || generateId('upd'),
+      title: String(u.title || 'Site Development Milestone').trim(),
+      phase: String(u.phase || 'Phase 1').trim(),
+      date: String(u.date || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })).trim(),
+      progressPercent:
+        u.progressPercent !== undefined && u.progressPercent !== null
+          ? Math.max(0, Math.min(100, Number(u.progressPercent) || 0))
+          : undefined,
+      summary: String(u.summary || '').trim(),
+      image: u.image ? String(u.image).trim() : '',
+    }));
+}
 
 export const apiRouter = express.Router();
 
@@ -56,13 +100,25 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 8 * 1024 * 1024 },
+  limits: { fileSize: 25 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
-    if (allowed.includes(file.mimetype)) {
+    const allowed = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+      'image/svg+xml',
+      'image/heic',
+      'image/heif',
+      'image/avif',
+      'image/x-icon',
+      'image/vnd.microsoft.icon',
+    ];
+    if (allowed.includes(file.mimetype) || file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
-      cb(new Error('Only JPG, PNG, WEBP, GIF, and SVG image files are permitted.'));
+      cb(new Error('Please select a valid image file from your gallery.'));
     }
   },
 });
@@ -213,6 +269,25 @@ apiRouter.post('/public/inquiries', (req, res) => {
   db.inquiries.unshift(newInquiry);
   saveDb(db);
 
+  pushNotification({
+    title: `New Inquiry: ${newInquiry.subject}`,
+    message: `${newInquiry.name} (${newInquiry.phone}) inquired${newInquiry.schemeName ? ` about ${newInquiry.schemeName}` : ''}.`,
+    category: 'inquiry',
+    link: '/admin',
+    targetAudience: 'admin',
+  });
+
+  if (optionalCustomer) {
+    pushNotification({
+      title: 'Inquiry Received — Al Amaan Advisory',
+      message: `Your inquiry "${newInquiry.subject}" has been logged. An advisor will respond shortly.`,
+      category: 'inquiry',
+      link: '/dashboard',
+      targetAudience: 'customer',
+      targetCustomerId: optionalCustomer.id,
+    });
+  }
+
   res.status(201).json({
     message: 'Thank you. Your inquiry has been registered with Al Amaan Real Estate & Developers.',
     inquiry: newInquiry,
@@ -275,6 +350,14 @@ apiRouter.post('/auth/register', (req, res) => {
     }
   });
   saveDb(db);
+
+  pushNotification({
+    title: 'New Client Account Registered',
+    message: `${newUser.name} (${newUser.phone}) joined the client portal.`,
+    category: 'announcement',
+    link: '/admin',
+    targetAudience: 'admin',
+  });
 
   const token = signAuthToken({ userId: newUser.id, role: 'customer', scope: 'customer' });
   setSessionCookie(res, CUSTOMER_COOKIE, token);
@@ -524,11 +607,96 @@ apiRouter.get('/admin/auth/me', requireAdminAuth(), (req: AuthenticatedRequest, 
   res.json({ admin: sanitizeUser(req.authUser!) });
 });
 
-// Overview Dashboard Statistics
+// Overview Dashboard Statistics & Live Analytics
 apiRouter.get('/admin/overview', requireAdminAuth(), (_req, res) => {
   const db = getDb();
   const customers = db.users.filter((u) => u.role === 'customer');
   const admins = db.users.filter((u) => u.role !== 'customer');
+
+  const projectBreakdown = [...db.schemes]
+    .sort((a, b) => a.displayOrder - b.displayOrder)
+    .map((scheme) => {
+      const props = db.properties.filter((p) => p.schemeId === scheme.id);
+      const inqs = db.inquiries.filter((i) => i.schemeId === scheme.id);
+      const updatesWithProgress = (scheme.developmentUpdates || []).filter(
+        (u) => typeof u.progressPercent === 'number'
+      );
+      const avgDev = updatesWithProgress.length
+        ? Math.round(
+            updatesWithProgress.reduce((sum, u) => sum + (u.progressPercent || 0), 0) /
+              updatesWithProgress.length
+          )
+        : scheme.status === 'Completed'
+          ? 100
+          : scheme.status === 'Upcoming'
+            ? 25
+            : 65;
+
+      return {
+        projectId: scheme.id,
+        projectName: scheme.name,
+        status: scheme.status || ('Ongoing' as ProjectStatus),
+        totalProperties: props.length,
+        available: props.filter((p) => p.status === 'Available').length,
+        reserved: props.filter((p) => p.status === 'Reserved').length,
+        sold: props.filter((p) => p.status === 'Sold').length,
+        inquiriesCount: inqs.length,
+        avgDevelopmentProgress: avgDev,
+      };
+    });
+
+  const categoryMap = new Map<string, number>();
+  db.properties.forEach((p) => {
+    const key = p.category || 'Residential Plot';
+    categoryMap.set(key, (categoryMap.get(key) || 0) + 1);
+  });
+  const categoryBreakdown = Array.from(categoryMap.entries()).map(([category, count]) => ({
+    category,
+    count,
+  }));
+
+  const newCount = db.inquiries.filter((i) => i.status === 'New').length;
+  const contactedCount = db.inquiries.filter((i) => i.status === 'Contacted').length;
+  const closedCount = db.inquiries.filter((i) => i.status === 'Closed').length;
+  const inquiryResolutionRate = db.inquiries.length
+    ? Math.round(((contactedCount + closedCount) / db.inquiries.length) * 100)
+    : 100;
+
+  const avgDevelopmentProgress = projectBreakdown.length
+    ? Math.round(
+        projectBreakdown.reduce((sum, p) => sum + p.avgDevelopmentProgress, 0) /
+          projectBreakdown.length
+      )
+    : 0;
+
+  // Build 6-month trend window anchored on current date, populated by real DB timestamps
+  const now = new Date();
+  const monthBuckets: Array<{ key: string; label: string; inquiries: number; customers: number; listings: number }> = [];
+  for (let offset = 5; offset >= 0; offset -= 1) {
+    const d = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+    monthBuckets.push({ key, label, inquiries: 0, customers: 0, listings: 0 });
+  }
+  const findBucket = (iso?: string) => {
+    if (!iso) return null;
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return null;
+    const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    return monthBuckets.find((b) => b.key === k) || monthBuckets[0];
+  };
+  db.inquiries.forEach((inq) => {
+    const b = findBucket(inq.createdAt);
+    if (b) b.inquiries += 1;
+  });
+  customers.forEach((cust) => {
+    const b = findBucket(cust.createdAt);
+    if (b) b.customers += 1;
+  });
+  db.properties.forEach((prop) => {
+    const b = findBucket(prop.createdAt);
+    if (b) b.listings += 1;
+  });
 
   const stats: AdminDashboardStats = {
     totalCustomers: customers.length,
@@ -541,13 +709,26 @@ apiRouter.get('/admin/overview', requireAdminAuth(), (_req, res) => {
     soldProperties: db.properties.filter((p) => p.status === 'Sold').length,
     reservedProperties: db.properties.filter((p) => p.status === 'Reserved').length,
     totalInquiries: db.inquiries.length,
-    newInquiries: db.inquiries.filter((i) => i.status === 'New').length,
+    newInquiries: newCount,
     recentCustomers: customers
       .slice()
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 6)
       .map(sanitizeUser),
     recentActivities: db.activityLogs.slice(0, 12),
+    analytics: {
+      projectBreakdown,
+      inquiryStatusBreakdown: { newCount, contactedCount, closedCount },
+      categoryBreakdown,
+      trendSeries: monthBuckets.map(({ label, inquiries, customers: cCount, listings }) => ({
+        label,
+        inquiries,
+        customers: cCount,
+        listings,
+      })),
+      avgDevelopmentProgress,
+      inquiryResolutionRate,
+    },
   };
 
   res.json(stats);
@@ -596,6 +777,8 @@ apiRouter.post('/admin/schemes', requireAdminAuth(['super_admin', 'editor']), (r
     slug,
     name,
     tagline: String(req.body.tagline || `${name} — Master-Planned Community`),
+    status: normalizeProjectStatus(req.body.status),
+    projectLogo: String(req.body.projectLogo || ''),
     location,
     city: String(req.body.city || 'Lahore'),
     approvalStatus: String(req.body.approvalStatus || 'Approved Housing Scheme'),
@@ -607,10 +790,13 @@ apiRouter.post('/admin/schemes', requireAdminAuth(['super_admin', 'editor']), (r
     gallery: Array.isArray(req.body.gallery) ? req.body.gallery.map(String).filter(Boolean) : [],
     facilities: Array.isArray(req.body.facilities) ? req.body.facilities.map(String).filter(Boolean) : [],
     plotCategories,
+    paymentPlans: normalizePaymentPlans(req.body.paymentPlans),
+    developmentUpdates: normalizeDevelopmentUpdates(req.body.developmentUpdates),
     mapEmbedUrl: String(req.body.mapEmbedUrl || ''),
     googleMapsUrl: String(req.body.googleMapsUrl || ''),
-    contactPerson: String(req.body.contactPerson || 'Al Amaan Scheme Desk'),
+    contactPerson: String(req.body.contactPerson || 'Al Amaan Project Desk'),
     contactPhone: String(req.body.contactPhone || db.contact.primaryPhone),
+    whatsappNumber: String(req.body.whatsappNumber || req.body.contactPhone || db.contact.whatsappNumber),
     contactEmail: String(req.body.contactEmail || db.contact.email),
     published: req.body.published !== undefined ? Boolean(req.body.published) : true,
     featured: Boolean(req.body.featured),
@@ -621,7 +807,17 @@ apiRouter.post('/admin/schemes', requireAdminAuth(['super_admin', 'editor']), (r
 
   db.schemes.push(newScheme);
   saveDb(db);
-  recordActivity(req.authUser!, 'Schemes', 'SCHEME_CREATED', `Added housing scheme "${newScheme.name}".`);
+  recordActivity(req.authUser!, 'Projects', 'PROJECT_CREATED', `Added project "${newScheme.name}" (${newScheme.status}).`);
+
+  if (newScheme.published) {
+    pushNotification({
+      title: `New Project Launched: ${newScheme.name}`,
+      message: `${newScheme.status} development in ${newScheme.city}. Explore plots, payment plans & site gallery.`,
+      category: 'project',
+      link: `/projects/${newScheme.slug}`,
+      targetAudience: 'all',
+    });
+  }
 
   res.status(201).json({ scheme: newScheme });
 });
@@ -630,9 +826,13 @@ apiRouter.put('/admin/schemes/:id', requireAdminAuth(['super_admin', 'editor']),
   const db = getDb();
   const scheme = db.schemes.find((s) => s.id === req.params.id);
   if (!scheme) {
-    res.status(404).json({ error: 'Housing scheme not found.' });
+    res.status(404).json({ error: 'Project not found.' });
     return;
   }
+
+  const wasPublished = scheme.published;
+  const prevUpdatesCount = (scheme.developmentUpdates || []).length;
+  const prevPlansCount = (scheme.paymentPlans || []).length;
 
   if (req.body.name !== undefined) scheme.name = String(req.body.name).trim();
   if (req.body.slug !== undefined) {
@@ -642,6 +842,8 @@ apiRouter.put('/admin/schemes/:id', requireAdminAuth(['super_admin', 'editor']),
     }
   }
   if (req.body.tagline !== undefined) scheme.tagline = String(req.body.tagline);
+  if (req.body.status !== undefined) scheme.status = normalizeProjectStatus(req.body.status);
+  if (req.body.projectLogo !== undefined) scheme.projectLogo = String(req.body.projectLogo);
   if (req.body.location !== undefined) scheme.location = String(req.body.location);
   if (req.body.city !== undefined) scheme.city = String(req.body.city);
   if (req.body.approvalStatus !== undefined) scheme.approvalStatus = String(req.body.approvalStatus);
@@ -663,10 +865,17 @@ apiRouter.put('/admin/schemes/:id', requireAdminAuth(['super_admin', 'editor']),
       description: String(pc.description || ''),
     }));
   }
+  if (Array.isArray(req.body.paymentPlans)) {
+    scheme.paymentPlans = normalizePaymentPlans(req.body.paymentPlans);
+  }
+  if (Array.isArray(req.body.developmentUpdates)) {
+    scheme.developmentUpdates = normalizeDevelopmentUpdates(req.body.developmentUpdates);
+  }
   if (req.body.mapEmbedUrl !== undefined) scheme.mapEmbedUrl = String(req.body.mapEmbedUrl);
   if (req.body.googleMapsUrl !== undefined) scheme.googleMapsUrl = String(req.body.googleMapsUrl);
   if (req.body.contactPerson !== undefined) scheme.contactPerson = String(req.body.contactPerson);
   if (req.body.contactPhone !== undefined) scheme.contactPhone = String(req.body.contactPhone);
+  if (req.body.whatsappNumber !== undefined) scheme.whatsappNumber = String(req.body.whatsappNumber);
   if (req.body.contactEmail !== undefined) scheme.contactEmail = String(req.body.contactEmail);
   if (req.body.published !== undefined) scheme.published = Boolean(req.body.published);
   if (req.body.featured !== undefined) scheme.featured = Boolean(req.body.featured);
@@ -674,7 +883,36 @@ apiRouter.put('/admin/schemes/:id', requireAdminAuth(['super_admin', 'editor']),
   scheme.updatedAt = new Date().toISOString();
 
   saveDb(db);
-  recordActivity(req.authUser!, 'Schemes', 'SCHEME_UPDATED', `Updated scheme "${scheme.name}" (published: ${scheme.published}).`);
+  recordActivity(req.authUser!, 'Projects', 'PROJECT_UPDATED', `Updated project "${scheme.name}" (published: ${scheme.published}).`);
+
+  if (scheme.published) {
+    if (!wasPublished) {
+      pushNotification({
+        title: `Project Published: ${scheme.name}`,
+        message: `${scheme.name} is now live with full plots, facilities, and inquiry desk details.`,
+        category: 'project',
+        link: `/projects/${scheme.slug}`,
+        targetAudience: 'all',
+      });
+    } else if ((scheme.developmentUpdates || []).length > prevUpdatesCount) {
+      const latestUpd = (scheme.developmentUpdates || [])[0];
+      pushNotification({
+        title: `Development Update: ${scheme.name}`,
+        message: latestUpd ? `${latestUpd.title} (${latestUpd.phase})` : `New on-site engineering milestone posted for ${scheme.name}.`,
+        category: 'development',
+        link: `/projects/${scheme.slug}`,
+        targetAudience: 'all',
+      });
+    } else if ((scheme.paymentPlans || []).length > prevPlansCount) {
+      pushNotification({
+        title: `New Payment Plan: ${scheme.name}`,
+        message: `Updated installment and booking schedule published for ${scheme.name}.`,
+        category: 'payment_plan',
+        link: `/projects/${scheme.slug}`,
+        targetAudience: 'all',
+      });
+    }
+  }
 
   res.json({ scheme });
 });
@@ -743,7 +981,16 @@ apiRouter.post('/admin/properties', requireAdminAuth(['super_admin', 'editor']),
   saveDb(db);
   recordActivity(req.authUser!, 'Properties', 'PROPERTY_CREATED', `Added listing "${newProp.title}" (${newProp.referenceCode}).`);
 
-  res.status(201).json({ property: enrichProperty(newProp, db.schemes) });
+  const enrichedNew = enrichProperty(newProp, db.schemes);
+  pushNotification({
+    title: `New Property Listed: ${enrichedNew.title}`,
+    message: `${enrichedNew.size} (${enrichedNew.category}) in ${enrichedNew.schemeName || enrichedNew.location}.`,
+    category: 'property',
+    link: `/properties/${enrichedNew.id}`,
+    targetAudience: 'all',
+  });
+
+  res.status(201).json({ property: enrichedNew });
 });
 
 apiRouter.put('/admin/properties/:id', requireAdminAuth(['super_admin', 'editor']), (req: AuthenticatedRequest, res) => {
@@ -753,6 +1000,8 @@ apiRouter.put('/admin/properties/:id', requireAdminAuth(['super_admin', 'editor'
     res.status(404).json({ error: 'Property not found.' });
     return;
   }
+
+  const prevStatus = prop.status;
 
   if (req.body.title !== undefined) prop.title = String(req.body.title).trim();
   if (req.body.referenceCode !== undefined) prop.referenceCode = String(req.body.referenceCode).trim();
@@ -779,6 +1028,16 @@ apiRouter.put('/admin/properties/:id', requireAdminAuth(['super_admin', 'editor'
 
   saveDb(db);
   recordActivity(req.authUser!, 'Properties', 'PROPERTY_UPDATED', `Updated "${prop.title}" (Status: ${prop.status}).`);
+
+  if (prevStatus !== prop.status) {
+    pushNotification({
+      title: `Listing ${prop.status}: ${prop.title}`,
+      message: `Status updated from ${prevStatus} to ${prop.status} (${prop.size}).`,
+      category: 'property',
+      link: `/properties/${prop.id}`,
+      targetAudience: 'all',
+    });
+  }
 
   res.json({ property: enrichProperty(prop, db.schemes) });
 });
@@ -811,13 +1070,34 @@ apiRouter.put('/admin/customers/:id', requireAdminAuth(['super_admin', 'support'
     return;
   }
 
-  if (req.body.name !== undefined) customer.name = String(req.body.name).trim();
+  if (req.body.name !== undefined) {
+    const nextName = String(req.body.name).trim();
+    if (nextName.length < 2) {
+      res.status(400).json({ error: 'Customer name must be at least 2 characters.' });
+      return;
+    }
+    customer.name = nextName;
+  }
   if (req.body.phone !== undefined) customer.phone = String(req.body.phone).trim();
   if (req.body.email !== undefined) {
     const nextEmail = String(req.body.email).trim().toLowerCase();
-    if (isValidEmail(nextEmail) && !db.users.some((u) => u.id !== customer.id && u.email.toLowerCase() === nextEmail)) {
-      customer.email = nextEmail;
+    if (!isValidEmail(nextEmail)) {
+      res.status(400).json({ error: 'Please enter a valid customer email address.' });
+      return;
     }
+    if (db.users.some((u) => u.id !== customer.id && u.email.toLowerCase() === nextEmail)) {
+      res.status(409).json({ error: 'That email address is already assigned to another account.' });
+      return;
+    }
+    customer.email = nextEmail;
+  }
+  if (req.body.newPassword !== undefined && String(req.body.newPassword).length > 0) {
+    const nextPass = String(req.body.newPassword);
+    if (nextPass.length < 6) {
+      res.status(400).json({ error: 'New password must be at least 6 characters.' });
+      return;
+    }
+    customer.passwordHash = bcrypt.hashSync(nextPass, 10);
   }
   if (req.body.active !== undefined) {
     customer.active = Boolean(req.body.active);
@@ -828,7 +1108,7 @@ apiRouter.put('/admin/customers/:id', requireAdminAuth(['super_admin', 'support'
     req.authUser!,
     'Customers',
     'CUSTOMER_UPDATED',
-    `Updated customer "${customer.name}" (Active: ${customer.active}).`
+    `Updated customer "${customer.name}" (${customer.email}, Active: ${customer.active}).`
   );
 
   res.json({ customer: sanitizeUser(customer) });
@@ -869,6 +1149,17 @@ apiRouter.put('/admin/inquiries/:id', requireAdminAuth(), (req: AuthenticatedReq
     'INQUIRY_UPDATED',
     `Updated inquiry from "${inquiry.name}" to status "${inquiry.status}".`
   );
+
+  if (inquiry.customerId) {
+    pushNotification({
+      title: `Inquiry Update: ${inquiry.subject}`,
+      message: `Your inquiry status is now "${inquiry.status}". Open your Client Dashboard to review.`,
+      category: 'inquiry',
+      link: '/dashboard',
+      targetAudience: 'customer',
+      targetCustomerId: inquiry.customerId,
+    });
+  }
 
   res.json({ inquiry });
 });
@@ -1143,6 +1434,10 @@ apiRouter.put('/admin/profile', requireAdminAuth(), (req: AuthenticatedRequest, 
   const currentPassword = req.body.currentPassword ? String(req.body.currentPassword) : '';
   const newPassword = req.body.newPassword ? String(req.body.newPassword) : '';
 
+  if (name.length < 2) {
+    res.status(400).json({ error: 'Name must be at least 2 characters.' });
+    return;
+  }
   if (!isValidEmail(email)) {
     res.status(400).json({ error: 'Please enter a valid email address.' });
     return;
@@ -1153,7 +1448,7 @@ apiRouter.put('/admin/profile', requireAdminAuth(), (req: AuthenticatedRequest, 
   }
 
   if (newPassword) {
-    if (!currentPassword || !bcrypt.compareSync(currentPassword, admin.passwordHash)) {
+    if (currentPassword && !bcrypt.compareSync(currentPassword, admin.passwordHash)) {
       res.status(400).json({ error: 'Current administrator password is incorrect.' });
       return;
     }
@@ -1170,7 +1465,7 @@ apiRouter.put('/admin/profile', requireAdminAuth(), (req: AuthenticatedRequest, 
   saveDb(db);
   recordActivity(admin, 'Admin Profile', 'PROFILE_UPDATED', `Updated administrator profile (${admin.email}).`);
 
-  res.json({ admin: sanitizeUser(admin), message: 'Administrator profile updated.' });
+  res.json({ admin: sanitizeUser(admin), message: 'Administrator email & credentials updated successfully.' });
 });
 
 apiRouter.get('/admin/team', requireAdminAuth(['super_admin']), (_req, res) => {
@@ -1218,6 +1513,73 @@ apiRouter.post('/admin/team', requireAdminAuth(['super_admin']), (req: Authentic
   res.status(201).json({ member: sanitizeUser(newMember) });
 });
 
+apiRouter.put('/admin/team/:id', requireAdminAuth(['super_admin']), (req: AuthenticatedRequest, res) => {
+  const db = getDb();
+  const member = db.users.find((u) => u.id === req.params.id && u.role !== 'customer');
+  if (!member) {
+    res.status(404).json({ error: 'Administrator account not found.' });
+    return;
+  }
+
+  if (req.body.name !== undefined) {
+    const nextName = String(req.body.name).trim();
+    if (nextName.length < 2) {
+      res.status(400).json({ error: 'Name must be at least 2 characters.' });
+      return;
+    }
+    member.name = nextName;
+  }
+  if (req.body.phone !== undefined) member.phone = String(req.body.phone).trim();
+  if (req.body.email !== undefined) {
+    const nextEmail = String(req.body.email).trim().toLowerCase();
+    if (!isValidEmail(nextEmail)) {
+      res.status(400).json({ error: 'Please enter a valid email address.' });
+      return;
+    }
+    if (db.users.some((u) => u.id !== member.id && u.email.toLowerCase() === nextEmail)) {
+      res.status(409).json({ error: 'Email is already assigned to another account.' });
+      return;
+    }
+    member.email = nextEmail;
+  }
+  if (req.body.role !== undefined) {
+    const nextRole = req.body.role as UserRole;
+    if (!['super_admin', 'editor', 'support'].includes(nextRole)) {
+      res.status(400).json({ error: 'Invalid administrative role.' });
+      return;
+    }
+    if (member.id === req.authUser!.id && nextRole !== 'super_admin') {
+      res.status(400).json({ error: 'You cannot downgrade your own active Super Admin role.' });
+      return;
+    }
+    member.role = nextRole;
+  }
+  if (req.body.active !== undefined) {
+    if (member.id === req.authUser!.id && !req.body.active) {
+      res.status(400).json({ error: 'You cannot deactivate your own active Super Admin account.' });
+      return;
+    }
+    member.active = Boolean(req.body.active);
+  }
+  if (req.body.newPassword !== undefined && String(req.body.newPassword).length > 0) {
+    const nextPass = String(req.body.newPassword);
+    if (nextPass.length < 6) {
+      res.status(400).json({ error: 'New password must be at least 6 characters.' });
+      return;
+    }
+    member.passwordHash = bcrypt.hashSync(nextPass, 10);
+  }
+
+  saveDb(db);
+  recordActivity(
+    req.authUser!,
+    'Admin Team',
+    'ADMIN_UPDATED',
+    `Updated administrator "${member.name}" (${member.email}).`
+  );
+  res.json({ member: sanitizeUser(member) });
+});
+
 // M. GENERAL SETTINGS
 apiRouter.put('/admin/settings', requireAdminAuth(['super_admin']), (req: AuthenticatedRequest, res) => {
   const db = getDb();
@@ -1234,4 +1596,69 @@ apiRouter.put('/admin/settings', requireAdminAuth(['super_admin']), (req: Authen
 apiRouter.get('/admin/activity-logs', requireAdminAuth(), (_req, res) => {
   const db = getDb();
   res.json({ logs: db.activityLogs });
+});
+
+// O. REAL-TIME WEBSITE & MOBILE NOTIFICATIONS
+apiRouter.get('/public/notifications', (req, res) => {
+  const db = getDb();
+  const optionalCustomer = resolveOptionalCustomer(req);
+  const items = (db.notifications || []).filter((n) => {
+    if (n.targetAudience === 'all') return true;
+    if (n.targetAudience === 'customer' && optionalCustomer && n.targetCustomerId === optionalCustomer.id) {
+      return true;
+    }
+    return false;
+  });
+  res.json({ notifications: items.slice(0, 40) });
+});
+
+apiRouter.get('/admin/notifications', requireAdminAuth(), (_req, res) => {
+  const db = getDb();
+  res.json({ notifications: (db.notifications || []).slice(0, 60) });
+});
+
+apiRouter.post('/admin/notifications', requireAdminAuth(['super_admin', 'editor']), (req: AuthenticatedRequest, res) => {
+  const title = String(req.body.title || '').trim();
+  const message = String(req.body.message || '').trim();
+  const rawCat = String(req.body.category || 'announcement');
+  const allowedCats: NotificationCategory[] = ['project', 'property', 'development', 'payment_plan', 'inquiry', 'announcement'];
+  const category: NotificationCategory = allowedCats.includes(rawCat as NotificationCategory)
+    ? (rawCat as NotificationCategory)
+    : 'announcement';
+  const link = String(req.body.link || '/projects').trim() || '/';
+
+  if (!title || !message) {
+    res.status(400).json({ error: 'Notification title and message are required.' });
+    return;
+  }
+
+  const created = pushNotification({
+    title,
+    message,
+    category,
+    link,
+    targetAudience: 'all',
+  });
+
+  recordActivity(
+    req.authUser!,
+    'Notifications',
+    'NOTIFICATION_BROADCAST',
+    `Broadcasted website notification "${created.title}".`
+  );
+
+  res.status(201).json({ notification: created });
+});
+
+apiRouter.delete('/admin/notifications/:id', requireAdminAuth(['super_admin', 'editor']), (req: AuthenticatedRequest, res) => {
+  const db = getDb();
+  const idx = (db.notifications || []).findIndex((n) => n.id === req.params.id);
+  if (idx === -1) {
+    res.status(404).json({ error: 'Notification not found.' });
+    return;
+  }
+  const [removed] = db.notifications.splice(idx, 1);
+  saveDb(db);
+  recordActivity(req.authUser!, 'Notifications', 'NOTIFICATION_DELETED', `Removed notification "${removed.title}".`);
+  res.json({ message: 'Notification removed.' });
 });

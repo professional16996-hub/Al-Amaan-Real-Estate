@@ -8,11 +8,37 @@ export interface PlotCategory {
   description: string;
 }
 
+export type ProjectStatus = 'Upcoming' | 'Ongoing' | 'Completed';
+
+export interface ProjectPaymentPlan {
+  id: string;
+  planName: string;
+  plotSize: string;
+  totalPrice: number;
+  downPayment: number;
+  installmentDuration: string;
+  monthlyInstallment: number;
+  possessionCharges?: string;
+  notes?: string;
+}
+
+export interface ProjectDevelopmentUpdate {
+  id: string;
+  title: string;
+  phase: string;
+  date: string;
+  progressPercent?: number;
+  summary: string;
+  image?: string;
+}
+
 export interface HousingScheme {
   id: string;
   slug: string;
   name: string;
   tagline: string;
+  status?: ProjectStatus;
+  projectLogo?: string;
   location: string;
   city: string;
   approvalStatus: string;
@@ -22,10 +48,13 @@ export interface HousingScheme {
   gallery: string[];
   facilities: string[];
   plotCategories: PlotCategory[];
+  paymentPlans?: ProjectPaymentPlan[];
+  developmentUpdates?: ProjectDevelopmentUpdate[];
   mapEmbedUrl: string;
   googleMapsUrl: string;
   contactPerson: string;
   contactPhone: string;
+  whatsappNumber?: string;
   contactEmail: string;
   published: boolean;
   featured: boolean;
@@ -217,6 +246,8 @@ export interface WebsiteContent {
   featuredSchemeSectionKicker: string;
   featuredSchemeSectionHeading: string;
   featuredSchemeSectionSummary: string;
+  moreProjectsHeading?: string;
+  moreProjectsSummary?: string;
   whyChooseHeading: string;
   whyChooseSummary: string;
   whyChooseItems: WhyChooseItem[];
@@ -232,6 +263,25 @@ export interface WebsiteContent {
   aboutImage: string;
   privacyPolicyContent: string;
   termsConditionsContent: string;
+}
+
+export type NotificationCategory =
+  | 'project'
+  | 'property'
+  | 'development'
+  | 'payment_plan'
+  | 'inquiry'
+  | 'announcement';
+
+export interface SiteNotification {
+  id: string;
+  title: string;
+  message: string;
+  category: NotificationCategory;
+  link: string;
+  targetAudience: 'all' | 'customer' | 'admin';
+  targetCustomerId?: string;
+  createdAt: string;
 }
 
 export interface ActivityLogItem {
@@ -257,6 +307,41 @@ export interface PublicBootstrapPayload {
   properties: PropertyItem[];
 }
 
+export interface AdminProjectAnalyticsItem {
+  projectId: string;
+  projectName: string;
+  status: ProjectStatus;
+  totalProperties: number;
+  available: number;
+  reserved: number;
+  sold: number;
+  inquiriesCount: number;
+  avgDevelopmentProgress: number;
+}
+
+export interface AdminTrendPoint {
+  label: string;
+  inquiries: number;
+  customers: number;
+  listings: number;
+}
+
+export interface AdminAnalyticsPayload {
+  projectBreakdown: AdminProjectAnalyticsItem[];
+  inquiryStatusBreakdown: {
+    newCount: number;
+    contactedCount: number;
+    closedCount: number;
+  };
+  categoryBreakdown: Array<{
+    category: string;
+    count: number;
+  }>;
+  trendSeries: AdminTrendPoint[];
+  avgDevelopmentProgress: number;
+  inquiryResolutionRate: number;
+}
+
 export interface AdminDashboardStats {
   totalCustomers: number;
   totalAccounts: number;
@@ -271,4 +356,5 @@ export interface AdminDashboardStats {
   newInquiries: number;
   recentCustomers: UserAccount[];
   recentActivities: ActivityLogItem[];
+  analytics: AdminAnalyticsPayload;
 }

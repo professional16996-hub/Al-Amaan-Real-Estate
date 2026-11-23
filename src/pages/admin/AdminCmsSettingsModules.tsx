@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Trash2, Upload } from 'lucide-react';
-import { apiRequest, uploadMediaRequest } from '../../services/api';
+import { Edit3, Eye, EyeOff, Plus, Trash2 } from 'lucide-react';
+import { apiRequest } from '../../services/api';
 import { useSite } from '../../context/SiteContext';
+import { SingleImageField } from '../../components/MobileImagePicker';
 import type {
   ContactConfig,
-  MediaAsset,
   NavItem,
   PageSEOConfig,
   SiteSettings,
@@ -18,7 +18,9 @@ import type {
 // E. WEBSITE CONTENT & STATISTICS MANAGEMENT
 // ============================================================================
 
-export const WebsiteContentAdminModule: React.FC = () => {
+export const WebsiteContentAdminModule: React.FC<{ focusMode?: 'homepage' | 'all' }> = ({
+  focusMode = 'all',
+}) => {
   const { data, refreshPublicData } = useSite();
   const [form, setForm] = useState<WebsiteContent | null>(data?.content || null);
   const [saving, setSaving] = useState(false);
@@ -29,13 +31,6 @@ export const WebsiteContentAdminModule: React.FC = () => {
   }, [data?.content]);
 
   if (!form) return null;
-
-  const handleUploadBanner = async (field: 'heroImage' | 'aboutImage', e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const res = await uploadMediaRequest<{ asset: MediaAsset }>('/api/admin/media/upload', file, field);
-    setForm((prev) => (prev ? { ...prev, [field]: res.asset.url } : prev));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +43,7 @@ export const WebsiteContentAdminModule: React.FC = () => {
         body: form,
       });
       await refreshPublicData();
-      setSavedMsg('Website content, banners, and statistics updated across all public pages.');
+      setSavedMsg('Website content, homepage banners, and statistics updated live.');
     } finally {
       setSaving(false);
     }
@@ -58,9 +53,15 @@ export const WebsiteContentAdminModule: React.FC = () => {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="font-display text-2xl font-semibold text-[#0B192C]">Website Content &amp; Statistics CMS</h2>
+          <h2 className="font-display text-2xl font-semibold text-[#0B192C]">
+            {focusMode === 'homepage'
+              ? 'Manage Homepage Sections & Statistics'
+              : 'Website Content, About & Legal CMS'}
+          </h2>
           <p className="text-xs text-slate-600">
-            Edit homepage hero copy, banners, quantitative statistics, About Us profile, Services, and legal pages.
+            {focusMode === 'homepage'
+              ? 'Edit homepage hero banner, CTA labels, Featured & More Projects headings, and statistics numbers.'
+              : 'Edit homepage copy, About Us story, Services, statistics, and Privacy / Terms pages.'}
           </p>
         </div>
         <button
@@ -81,7 +82,7 @@ export const WebsiteContentAdminModule: React.FC = () => {
       {/* Hero Section */}
       <div className="bg-white border border-slate-200 rounded-md p-6 space-y-4">
         <h3 className="font-display text-xl font-semibold text-[#0B192C]">Homepage Hero Banner</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">Hero Headline</label>
             <input
@@ -91,22 +92,12 @@ export const WebsiteContentAdminModule: React.FC = () => {
               className="w-full px-3 py-2 text-sm border border-slate-300 rounded"
             />
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Hero Aerial Image</label>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={form.heroImage}
-                onChange={(e) => setForm({ ...form, heroImage: e.target.value })}
-                className="flex-1 px-3 py-2 text-xs border border-slate-300 rounded"
-              />
-              <label className="cursor-pointer inline-flex items-center gap-1 px-3 py-2 text-xs font-semibold bg-[#0B192C] text-white rounded">
-                <Upload className="w-3.5 h-3.5" />
-                <span>Upload</span>
-                <input type="file" accept="image/*" onChange={(e) => handleUploadBanner('heroImage', e)} className="hidden" />
-              </label>
-            </div>
-          </div>
+          <SingleImageField
+            label="Hero Aerial Banner Photo"
+            value={form.heroImage}
+            titleHint="Homepage Hero Banner"
+            onChange={(nextUrl) => setForm({ ...form, heroImage: nextUrl })}
+          />
         </div>
 
         <div>
@@ -228,12 +219,27 @@ export const WebsiteContentAdminModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Featured Scheme Section & About Us */}
+      {/* Featured Project & More Projects Homepage Sections */}
       <div className="bg-white border border-slate-200 rounded-md p-6 space-y-4">
-        <h3 className="font-display text-xl font-semibold text-[#0B192C]">Featured Scheme &amp; About Us Copy</h3>
+        <h3 className="font-display text-xl font-semibold text-[#0B192C]">
+          Homepage Projects &amp; More Projects Section Headings
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Featured Scheme Heading</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Featured Spotlight Kicker
+            </label>
+            <input
+              type="text"
+              value={form.featuredSchemeSectionKicker}
+              onChange={(e) => setForm({ ...form, featuredSchemeSectionKicker: e.target.value })}
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Featured Spotlight Heading
+            </label>
             <input
               type="text"
               value={form.featuredSchemeSectionHeading}
@@ -241,55 +247,88 @@ export const WebsiteContentAdminModule: React.FC = () => {
               className="w-full px-3 py-2 text-sm border border-slate-300 rounded"
             />
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">About Us Image</label>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={form.aboutImage}
-                onChange={(e) => setForm({ ...form, aboutImage: e.target.value })}
-                className="flex-1 px-3 py-2 text-xs border border-slate-300 rounded"
-              />
-              <label className="cursor-pointer inline-flex items-center gap-1 px-3 py-2 text-xs font-semibold bg-[#0B192C] text-white rounded">
-                <Upload className="w-3.5 h-3.5" />
-                <span>Upload</span>
-                <input type="file" accept="image/*" onChange={(e) => handleUploadBanner('aboutImage', e)} className="hidden" />
-              </label>
-            </div>
-          </div>
         </div>
-
         <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1">About Us Corporate Story</label>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Featured Spotlight Summary
+          </label>
           <textarea
-            rows={4}
-            value={form.aboutStory}
-            onChange={(e) => setForm({ ...form, aboutStory: e.target.value })}
-            className="w-full px-3 py-2 text-sm border border-slate-300 rounded"
+            rows={2}
+            value={form.featuredSchemeSectionSummary}
+            onChange={(e) => setForm({ ...form, featuredSchemeSectionSummary: e.target.value })}
+            className="w-full px-3 py-2 text-xs border border-slate-300 rounded"
           />
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Privacy Policy Text</label>
-            <textarea
-              rows={5}
-              value={form.privacyPolicyContent}
-              onChange={(e) => setForm({ ...form, privacyPolicyContent: e.target.value })}
-              className="w-full px-3 py-2 text-xs border border-slate-300 rounded"
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              More Projects Section Heading
+            </label>
+            <input
+              type="text"
+              value={form.moreProjectsHeading || ''}
+              onChange={(e) => setForm({ ...form, moreProjectsHeading: e.target.value })}
+              placeholder="More Projects & Development Portfolio"
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Terms &amp; Conditions Text</label>
-            <textarea
-              rows={5}
-              value={form.termsConditionsContent}
-              onChange={(e) => setForm({ ...form, termsConditionsContent: e.target.value })}
-              className="w-full px-3 py-2 text-xs border border-slate-300 rounded"
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              More Projects Section Summary
+            </label>
+            <input
+              type="text"
+              value={form.moreProjectsSummary || ''}
+              onChange={(e) => setForm({ ...form, moreProjectsSummary: e.target.value })}
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded"
             />
           </div>
         </div>
       </div>
+
+      {/* About Us & Legal Pages (shown in full CMS mode) */}
+      {focusMode !== 'homepage' && (
+        <div className="bg-white border border-slate-200 rounded-md p-6 space-y-4">
+          <h3 className="font-display text-xl font-semibold text-[#0B192C]">About Us &amp; Legal Pages</h3>
+          <SingleImageField
+            label="About Us Office / Team Photo"
+            value={form.aboutImage}
+            titleHint="About Us Photo"
+            onChange={(nextUrl) => setForm({ ...form, aboutImage: nextUrl })}
+          />
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">About Us Corporate Story</label>
+            <textarea
+              rows={4}
+              value={form.aboutStory}
+              onChange={(e) => setForm({ ...form, aboutStory: e.target.value })}
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Privacy Policy Text</label>
+              <textarea
+                rows={5}
+                value={form.privacyPolicyContent}
+                onChange={(e) => setForm({ ...form, privacyPolicyContent: e.target.value })}
+                className="w-full px-3 py-2 text-xs border border-slate-300 rounded"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Terms &amp; Conditions Text</label>
+              <textarea
+                rows={5}
+                value={form.termsConditionsContent}
+                onChange={(e) => setForm({ ...form, termsConditionsContent: e.target.value })}
+                className="w-full px-3 py-2 text-xs border border-slate-300 rounded"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 };
@@ -698,7 +737,7 @@ export const SeoAdminModule: React.FC = () => {
         {seoList.map((row, idx) => (
           <div key={row.pageKey} className="bg-white border border-slate-200 rounded-md p-5 space-y-3">
             <p className="text-xs font-semibold text-[#9F7A31] uppercase tracking-wide">{row.pageLabel}</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Page Title</label>
                 <input
@@ -708,15 +747,13 @@ export const SeoAdminModule: React.FC = () => {
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Social Share Image URL</label>
-                <input
-                  type="text"
-                  value={row.ogImage}
-                  onChange={(e) => updateRow(idx, { ogImage: e.target.value })}
-                  className="w-full px-3 py-2 text-xs font-mono-num border border-slate-300 rounded"
-                />
-              </div>
+              <SingleImageField
+                label="Social Share Card Photo"
+                value={row.ogImage}
+                titleHint={`${row.pageLabel} Share Photo`}
+                allowClear
+                onChange={(nextUrl) => updateRow(idx, { ogImage: nextUrl })}
+              />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Meta Description</label>
@@ -754,6 +791,7 @@ export const AdminProfileModule: React.FC = () => {
   const [phone, setPhone] = useState(admin?.phone || '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [showPasswords, setShowPasswords] = useState(false);
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
   // Team management (super_admin only)
@@ -763,6 +801,15 @@ export const AdminProfileModule: React.FC = () => {
   const [memberPhone, setMemberPhone] = useState('');
   const [memberRole, setMemberRole] = useState<UserRole>('editor');
   const [memberPassword, setMemberPassword] = useState('');
+  const [editingMember, setEditingMember] = useState<(UserAccount & { newPassword?: string }) | null>(null);
+
+  useEffect(() => {
+    if (admin) {
+      setName(admin.name);
+      setEmail(admin.email);
+      setPhone(admin.phone);
+    }
+  }, [admin]);
 
   useEffect(() => {
     if (admin?.role === 'super_admin') {
@@ -781,7 +828,7 @@ export const AdminProfileModule: React.FC = () => {
         scope: 'admin',
         body: {
           name,
-          email,
+          email: email.trim().toLowerCase(),
           phone,
           currentPassword: currentPassword || undefined,
           newPassword: newPassword || undefined,
@@ -790,6 +837,11 @@ export const AdminProfileModule: React.FC = () => {
       setCurrentPassword('');
       setNewPassword('');
       await refreshAdmin();
+      if (admin?.role === 'super_admin') {
+        apiRequest<{ team: UserAccount[] }>('/api/admin/team', { scope: 'admin' })
+          .then((t) => setTeam(t.team))
+          .catch(() => {});
+      }
       setMsg({ type: 'ok', text: res.message });
     } catch (err) {
       setMsg({ type: 'err', text: err instanceof Error ? err.message : 'Update failed.' });
@@ -805,7 +857,7 @@ export const AdminProfileModule: React.FC = () => {
         scope: 'admin',
         body: {
           name: memberName,
-          email: memberEmail,
+          email: memberEmail.trim().toLowerCase(),
           phone: memberPhone,
           role: memberRole,
           password: memberPassword,
@@ -819,6 +871,32 @@ export const AdminProfileModule: React.FC = () => {
       setMsg({ type: 'ok', text: `Added ${res.member.role} account for ${res.member.name}.` });
     } catch (err) {
       setMsg({ type: 'err', text: err instanceof Error ? err.message : 'Unable to add team member.' });
+    }
+  };
+
+  const handleSaveTeamMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMember) return;
+    setMsg(null);
+    try {
+      const res = await apiRequest<{ member: UserAccount }>(`/api/admin/team/${editingMember.id}`, {
+        method: 'PUT',
+        scope: 'admin',
+        body: {
+          name: editingMember.name,
+          email: editingMember.email.trim().toLowerCase(),
+          phone: editingMember.phone,
+          role: editingMember.role,
+          active: editingMember.active,
+          newPassword: editingMember.newPassword || undefined,
+        },
+      });
+      setTeam((prev) => prev.map((m) => (m.id === res.member.id ? res.member : m)));
+      setEditingMember(null);
+      await refreshAdmin();
+      setMsg({ type: 'ok', text: `Updated credentials for ${res.member.name} (${res.member.email}).` });
+    } catch (err) {
+      setMsg({ type: 'err', text: err instanceof Error ? err.message : 'Unable to update staff account.' });
     }
   };
 
@@ -837,7 +915,23 @@ export const AdminProfileModule: React.FC = () => {
       )}
 
       <form onSubmit={handleProfileSave} className="bg-white border border-slate-200 rounded-md p-6 space-y-4">
-        <h2 className="font-display text-2xl font-semibold text-[#0B192C]">Administrator Profile &amp; Password</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="font-display text-2xl font-semibold text-[#0B192C]">Administrator Email &amp; Password</h2>
+            <p className="text-xs text-slate-600">
+              Change your login email or password anytime — updates take effect immediately everywhere.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowPasswords((prev) => !prev)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-slate-200 rounded text-slate-700 hover:border-[#0B192C]"
+          >
+            {showPasswords ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            <span>{showPasswords ? 'Hide Passwords' : 'Show Passwords'}</span>
+          </button>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">Full Name</label>
@@ -850,7 +944,7 @@ export const AdminProfileModule: React.FC = () => {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Email</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Login Email</label>
             <input
               type="email"
               required
@@ -873,28 +967,32 @@ export const AdminProfileModule: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Current Password (required to set new password)
+              Current Password (optional)
             </label>
             <input
-              type="password"
+              type={showPasswords ? 'text' : 'password'}
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Leave blank while signed in"
               className="w-full px-3 py-2 text-sm border border-slate-300 rounded"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">New Password</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              New Password (min 6 chars)
+            </label>
             <input
-              type="password"
+              type={showPasswords ? 'text' : 'password'}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Leave blank to keep current"
               className="w-full px-3 py-2 text-sm border border-slate-300 rounded"
             />
           </div>
         </div>
 
-        <button type="submit" className="px-6 py-2.5 text-xs font-semibold bg-[#0B192C] text-white rounded">
-          Update Admin Credentials
+        <button type="submit" className="px-6 py-2.5 text-xs font-semibold bg-[#0B192C] text-white rounded hover:bg-[#132742]">
+          Save Admin Email &amp; Password
         </button>
       </form>
 
@@ -905,18 +1003,109 @@ export const AdminProfileModule: React.FC = () => {
               Role-Based Administrative Team
             </h3>
             <p className="text-xs text-slate-600">
-              Assign Editor (Schemes, Properties, CMS) or Support (Inquiries, Customers) roles.
+              Edit any administrator’s email or password, or assign Editor (Schemes, Properties, CMS) and Support roles.
             </p>
           </div>
 
+          {editingMember && (
+            <form onSubmit={handleSaveTeamMember} className="p-4 bg-slate-50 border border-slate-200 rounded space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-[#0B192C]">
+                  Edit Credentials: {editingMember.name}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setEditingMember(null)}
+                  className="text-xs text-slate-500 hover:text-slate-900"
+                >
+                  Cancel
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  required
+                  value={editingMember.name}
+                  onChange={(e) => setEditingMember({ ...editingMember, name: e.target.value })}
+                  placeholder="Staff Name"
+                  className="px-3 py-2 text-xs border border-slate-300 rounded bg-white"
+                />
+                <input
+                  type="email"
+                  required
+                  value={editingMember.email}
+                  onChange={(e) => setEditingMember({ ...editingMember, email: e.target.value })}
+                  placeholder="Login Email"
+                  className="px-3 py-2 text-xs border border-slate-300 rounded bg-white"
+                />
+                <input
+                  type="text"
+                  value={editingMember.phone}
+                  onChange={(e) => setEditingMember({ ...editingMember, phone: e.target.value })}
+                  placeholder="Phone"
+                  className="px-3 py-2 text-xs font-mono-num border border-slate-300 rounded bg-white"
+                />
+                <select
+                  value={editingMember.role}
+                  onChange={(e) => setEditingMember({ ...editingMember, role: e.target.value as UserRole })}
+                  className="px-3 py-2 text-xs border border-slate-300 rounded bg-white"
+                >
+                  <option value="editor">Editor</option>
+                  <option value="support">Support</option>
+                  <option value="super_admin">Super Admin</option>
+                </select>
+                <input
+                  type={showPasswords ? 'text' : 'password'}
+                  value={editingMember.newPassword || ''}
+                  onChange={(e) => setEditingMember({ ...editingMember, newPassword: e.target.value })}
+                  placeholder="New Password (optional, min 6 chars)"
+                  className="px-3 py-2 text-xs border border-slate-300 rounded bg-white"
+                />
+                <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 px-1">
+                  <input
+                    type="checkbox"
+                    checked={editingMember.active}
+                    onChange={(e) => setEditingMember({ ...editingMember, active: e.target.checked })}
+                  />
+                  <span>Account Active</span>
+                </label>
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingMember(null)}
+                  className="px-3 py-1.5 text-xs border border-slate-300 rounded bg-white"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="px-4 py-1.5 text-xs font-semibold bg-[#0B192C] text-white rounded">
+                  Save Staff Credentials
+                </button>
+              </div>
+            </form>
+          )}
+
           <div className="divide-y divide-slate-200 border border-slate-200 rounded">
             {team.map((m) => (
-              <div key={m.id} className="p-3.5 flex items-center justify-between text-xs">
+              <div key={m.id} className="p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
                 <div>
-                  <p className="font-semibold text-slate-900">{m.name}</p>
+                  <p className="font-semibold text-slate-900">
+                    {m.name}{' '}
+                    {!m.active && <span className="text-rose-600 font-normal">· Inactive</span>}
+                  </p>
                   <p className="text-slate-500">{m.email}</p>
                 </div>
-                <span className="font-mono-num font-semibold text-[#9F7A31] uppercase">{m.role}</span>
+                <div className="flex items-center gap-3">
+                  <span className="font-mono-num font-semibold text-[#9F7A31] uppercase">{m.role}</span>
+                  <button
+                    type="button"
+                    onClick={() => setEditingMember({ ...m, newPassword: '' })}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium border border-slate-200 rounded hover:border-[#0B192C]"
+                  >
+                    <Edit3 className="w-3 h-3" />
+                    <span>Edit / Password</span>
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -955,7 +1144,7 @@ export const AdminProfileModule: React.FC = () => {
               <option value="super_admin">Super Admin (Full Control)</option>
             </select>
             <input
-              type="password"
+              type={showPasswords ? 'text' : 'password'}
               required
               minLength={6}
               value={memberPassword}
@@ -987,13 +1176,6 @@ export const SettingsAdminModule: React.FC = () => {
   }, [data?.settings]);
 
   if (!form) return null;
-
-  const handleUploadAsset = async (field: 'logoUrl' | 'faviconUrl', e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const res = await uploadMediaRequest<{ asset: MediaAsset }>('/api/admin/media/upload', file, field);
-    setForm((prev) => (prev ? { ...prev, [field]: res.asset.url } : prev));
-  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1051,40 +1233,22 @@ export const SettingsAdminModule: React.FC = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1">Brand Logo URL (optional)</label>
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={form.logoUrl}
-              onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
-              placeholder="Leave empty for pure typographic wordmark"
-              className="flex-1 px-3 py-2 text-xs border border-slate-300 rounded"
-            />
-            <label className="cursor-pointer inline-flex items-center gap-1 px-3 py-2 text-xs font-semibold bg-[#0B192C] text-white rounded">
-              <Upload className="w-3.5 h-3.5" />
-              <span>Upload</span>
-              <input type="file" accept="image/*" onChange={(e) => handleUploadAsset('logoUrl', e)} className="hidden" />
-            </label>
-          </div>
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1">Favicon URL (optional)</label>
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={form.faviconUrl}
-              onChange={(e) => setForm({ ...form, faviconUrl: e.target.value })}
-              className="flex-1 px-3 py-2 text-xs border border-slate-300 rounded"
-            />
-            <label className="cursor-pointer inline-flex items-center gap-1 px-3 py-2 text-xs font-semibold bg-[#0B192C] text-white rounded">
-              <Upload className="w-3.5 h-3.5" />
-              <span>Upload</span>
-              <input type="file" accept="image/*" onChange={(e) => handleUploadAsset('faviconUrl', e)} className="hidden" />
-            </label>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <SingleImageField
+          label="Agency Brand Logo (optional)"
+          helperText="Leave cleared to display the crisp editorial text wordmark."
+          value={form.logoUrl}
+          titleHint="Agency Brand Logo"
+          allowClear
+          onChange={(nextUrl) => setForm({ ...form, logoUrl: nextUrl })}
+        />
+        <SingleImageField
+          label="Browser Favicon (optional)"
+          value={form.faviconUrl}
+          titleHint="Site Favicon"
+          allowClear
+          onChange={(nextUrl) => setForm({ ...form, faviconUrl: nextUrl })}
+        />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

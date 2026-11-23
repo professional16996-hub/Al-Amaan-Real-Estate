@@ -1,0 +1,31 @@
+{
+  "id": "/",
+  "name": "Al Amaan Real Estate & Developers",
+  "short_name": "Al Amaan",
+  "description": "Real estate projects, plots, payment plans, and verified property advisory in Lahore, Pakistan.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#0B192C",
+  "background_color": "#07111E",
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

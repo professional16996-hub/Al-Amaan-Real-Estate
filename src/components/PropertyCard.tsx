@@ -77,7 +77,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property }) => {
         </button>
       </div>
 
-      <div className="flex-1 flex flex-col p-5 sm:p-6">
+      <div className="flex-1 flex flex-col p-4 sm:p-6 min-w-0">
         {/* Zero-Pill Unboxed Metadata Row */}
         <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 mb-2">
           <span className="text-slate-700 font-medium">{property.schemeName || property.city}</span>
@@ -89,7 +89,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property }) => {
           <span className={statusTone}>{property.status}</span>
         </div>
 
-        <Link to={`/properties/${property.id}`} className="block group-hover:text-[#0B192C]">
+        <Link to={`/properties/${property.id}`} className="block group-hover:text-[#0B192C] min-w-0">
           <h3 className="font-display text-xl font-semibold text-slate-900 leading-snug line-clamp-2">
             {property.title}
           </h3>
@@ -97,32 +97,32 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property }) => {
 
         <p className="mt-1.5 text-xs text-slate-500 truncate">{property.location}</p>
 
-        <div className="mt-4 pt-4 border-t border-slate-100 flex items-baseline justify-between gap-2">
-          <div>
-            <p className="font-mono-num text-base font-semibold text-[#0B192C]">
+        <div className="mt-4 pt-4 border-t border-slate-100 flex items-baseline justify-between gap-2 min-w-0">
+          <div className="min-w-0">
+            <p className="font-mono-num text-base font-semibold text-[#0B192C] truncate">
               {formatPKRCompact(property.price, currency)}
             </p>
-            <p className="font-mono-num text-[11px] text-slate-500">
+            <p className="font-mono-num text-[11px] text-slate-500 truncate">
               {formatPKR(property.price, currency)}
             </p>
           </div>
-          <span className="font-mono-num text-[11px] text-slate-400">{property.referenceCode}</span>
+          <span className="font-mono-num text-[11px] text-slate-400 shrink-0">{property.referenceCode}</span>
         </div>
 
-        <div className="mt-4 flex items-center gap-2.5 pt-1">
+        <div className="mt-4 flex items-center gap-2 pt-1 min-w-0">
           <Link
             to={`/properties/${property.id}`}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 text-xs font-semibold bg-[#0B192C] text-white rounded hover:bg-[#132742] transition-colors whitespace-nowrap"
+            className="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-semibold bg-[#0B192C] text-white rounded hover:bg-[#132742] transition-colors whitespace-nowrap"
           >
             <span>View Details</span>
-            <ArrowUpRight className="w-3.5 h-3.5" />
+            <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
           </Link>
           <a
             href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
             aria-label={`Inquire on WhatsApp about ${property.title}`}
-            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 text-xs font-semibold border border-slate-200 text-slate-800 rounded hover:border-[#25D366] hover:text-[#15803d] transition-colors whitespace-nowrap shrink-0"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-semibold border border-slate-200 text-slate-800 rounded hover:border-[#25D366] hover:text-[#15803d] transition-colors whitespace-nowrap shrink-0"
           >
             <WhatsAppLogo className="w-4 h-4 text-[#25D366]" />
             <span>WhatsApp</span>

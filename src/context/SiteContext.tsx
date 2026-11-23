@@ -93,7 +93,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginCustomer = async (email: string, password: string) => {
     const res = await apiRequest<{ token: string; user: UserAccount }>('/api/auth/login', {
       method: 'POST',
-      body: { email, password },
+      body: { email: email.trim().toLowerCase(), password },
     });
     setStoredToken('customer', res.token);
     setCustomer(res.user);
@@ -102,7 +102,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const registerCustomer = async (payload: { name: string; email: string; phone: string; password: string }) => {
     const res = await apiRequest<{ token: string; user: UserAccount }>('/api/auth/register', {
       method: 'POST',
-      body: payload,
+      body: { ...payload, email: payload.email.trim().toLowerCase() },
     });
     setStoredToken('customer', res.token);
     setCustomer(res.user);
@@ -130,7 +130,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginAdmin = async (email: string, password: string) => {
     const res = await apiRequest<{ token: string; admin: UserAccount }>('/api/admin/auth/login', {
       method: 'POST',
-      body: { email, password },
+      body: { email: email.trim().toLowerCase(), password },
     });
     setStoredToken('admin', res.token);
     setAdmin(res.admin);

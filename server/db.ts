@@ -10,7 +10,10 @@ import type {
   MediaAsset,
   NavItem,
   PageSEOConfig,
+  ProjectDevelopmentUpdate,
+  ProjectPaymentPlan,
   PropertyItem,
+  SiteNotification,
   SiteSettings,
   SocialConfig,
   TestimonialItem,
@@ -46,6 +49,7 @@ export interface DatabaseSchema {
   social: SocialConfig;
   content: WebsiteContent;
   activityLogs: ActivityLogItem[];
+  notifications: SiteNotification[];
 }
 
 const DATA_DIR = path.resolve(process.cwd(), process.env.DATA_DIR || './data');
@@ -76,12 +80,19 @@ export function slugify(text: string): string {
 
 function createInitialSeed(): DatabaseSchema {
   const now = new Date().toISOString();
-  const initialAdminEmail = (process.env.INITIAL_ADMIN_EMAIL || 'admin@alamaanestate.com').toLowerCase().trim();
+  const initialAdminEmail = (
+    process.env.INITIAL_ADMIN_EMAIL ||
+    process.env.ADMIN_EMAIL ||
+    'admin@alamaan.com'
+  )
+    .toLowerCase()
+    .trim();
   const initialAdminName = process.env.INITIAL_ADMIN_NAME || 'Tariq Mehmood — Executive Director';
-  const initialAdminPassword = process.env.INITIAL_ADMIN_PASSWORD || 'AlAmaan@2026';
+  const initialAdminPassword =
+    process.env.INITIAL_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || '123456';
 
   const adminPasswordHash = bcrypt.hashSync(initialAdminPassword, 10);
-  const sampleCustomerPasswordHash = bcrypt.hashSync('Customer@2026', 10);
+  const sampleCustomerPasswordHash = bcrypt.hashSync('123456', 10);
 
   const schemeAlJalilId = 'scheme_al_jalil_garden';
   const schemeWestMarinaId = 'scheme_al_noor_orchard';
@@ -92,6 +103,8 @@ function createInitialSeed(): DatabaseSchema {
       slug: 'al-jalil-garden',
       name: 'Al Jalil Garden',
       tagline: 'TMA-Approved Master-Planned Gated Community at Faizpur Interchange, Lahore',
+      status: 'Ongoing',
+      projectLogo: '',
       location: 'Main Sharaqpur Road, Opposite M-2 Motorway Faizpur Interchange, Lahore',
       city: 'Lahore',
       approvalStatus: 'TMA Approved · Possession & Installment Blocks',
@@ -171,8 +184,64 @@ function createInitialSeed(): DatabaseSchema {
       mapEmbedUrl:
         'https://www.openstreetmap.org/export/embed.html?bbox=74.1850%2C31.5650%2C74.2450%2C31.6050&layer=mapnik&marker=31.5850%2C74.2150',
       googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=Al+Jalil+Garden+Housing+Scheme+Lahore',
+      paymentPlans: [
+        {
+          id: 'pp_ajg_3m',
+          planName: 'Phase 2 Easy Installment Plan',
+          plotSize: '3 Marla Residential',
+          totalPrice: 3150000,
+          downPayment: 650000,
+          installmentDuration: '36 Months (3 Years)',
+          monthlyInstallment: 45000,
+          possessionCharges: 'PKR 350,000 at Possession',
+          notes: '6 half-yearly balloon installments included; ideal for monthly salaried & overseas buyers.',
+        },
+        {
+          id: 'pp_ajg_5m',
+          planName: 'Jasmine & Rose Possession Schedule',
+          plotSize: '5 Marla Residential',
+          totalPrice: 5250000,
+          downPayment: 1250000,
+          installmentDuration: '24 Months (2 Years)',
+          monthlyInstallment: 95000,
+          possessionCharges: 'Immediate Possession Available on 50%',
+          notes: 'Direct society transfer with verified NDC and electricity meter readiness.',
+        },
+        {
+          id: 'pp_ajg_4mc',
+          planName: 'Main Boulevard Commercial Plan',
+          plotSize: '4 Marla Commercial',
+          totalPrice: 18500000,
+          downPayment: 5500000,
+          installmentDuration: '18 Months',
+          monthlyInstallment: 500000,
+          possessionCharges: 'On Ground Commercial Possession',
+          notes: 'Eligible for multi-story retail & corporate office construction.',
+        },
+      ],
+      developmentUpdates: [
+        {
+          id: 'upd_ajg_1',
+          title: 'Jasmine Extension Street Carpet & Sewerage Lines Completed',
+          phase: 'Phase 2 · Jasmine Extension',
+          date: 'November 2026',
+          progressPercent: 92,
+          summary: 'Asphalt carpeting on 40-ft internal streets and main trunk storm drainage connections are finalized; street lighting poles energized.',
+          image: ASSET_PATHS.RESIDENTIAL_PLOT,
+        },
+        {
+          id: 'upd_ajg_2',
+          title: 'Main Boulevard Commercial Corridor Underground Grid Active',
+          phase: 'Commercial Broadway',
+          date: 'October 2026',
+          progressPercent: 100,
+          summary: 'Dedicated 11kV underground grid feeders commissioned for newly constructed commercial plazas and banking square.',
+          image: ASSET_PATHS.COMMERCIAL_PLAZA,
+        },
+      ],
       contactPerson: 'Chaudhry Bilal Ahmad — Senior Scheme Advisor',
       contactPhone: '+92 300 8459920',
+      whatsappNumber: '923008459920',
       contactEmail: 'aljalil@alamaanestate.com',
       published: true,
       featured: true,
@@ -185,6 +254,8 @@ function createInitialSeed(): DatabaseSchema {
       slug: 'al-noor-orchard-west-marina',
       name: 'Al Noor Orchard — West Marina',
       tagline: 'LDA-Approved Canal-Inspired Residential Enclave on Main Sharaqpur Corridor',
+      status: 'Ongoing',
+      projectLogo: '',
       location: '3 KM from Faizpur Interchange, Main Sharaqpur Road, Lahore',
       city: 'Lahore',
       approvalStatus: 'LDA Approved · Balloted & Possession Sectors',
@@ -249,8 +320,44 @@ function createInitialSeed(): DatabaseSchema {
       mapEmbedUrl:
         'https://www.openstreetmap.org/export/embed.html?bbox=74.1550%2C31.5750%2C74.2050%2C31.6150&layer=mapnik&marker=31.5950%2C74.1800',
       googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=Al+Noor+Orchard+Lahore',
+      paymentPlans: [
+        {
+          id: 'pp_ano_3m',
+          planName: 'West Marina Executive Installment Schedule',
+          plotSize: '3 Marla Residential',
+          totalPrice: 2650000,
+          downPayment: 550000,
+          installmentDuration: '36 Months',
+          monthlyInstallment: 38000,
+          possessionCharges: 'Balloted Allocation',
+          notes: 'LDA-approved file with computerized ledger verification.',
+        },
+        {
+          id: 'pp_ano_5m',
+          planName: 'West Marina Block Possession Plan',
+          plotSize: '5 Marla Residential',
+          totalPrice: 4450000,
+          downPayment: 1100000,
+          installmentDuration: '24 Months',
+          monthlyInstallment: 85000,
+          possessionCharges: 'PKR 400,000 at Possession',
+          notes: 'Park-facing & corner options available on priority allocation.',
+        },
+      ],
+      developmentUpdates: [
+        {
+          id: 'upd_ano_1',
+          title: 'West Marina Main Boulevard Curbstone & Greenbelt Landscaping',
+          phase: 'West Marina Sector',
+          date: 'November 2026',
+          progressPercent: 78,
+          summary: '210-ft main avenue earthwork, dual carriageway carpeting, and central median plantation completed up to Block C.',
+          image: ASSET_PATHS.HERO_SOCIETY,
+        },
+      ],
       contactPerson: 'Usman Farooq — Portfolio Consultant',
       contactPhone: '+92 300 8459920',
+      whatsappNumber: '923008459920',
       contactEmail: 'advisory@alamaanestate.com',
       published: true,
       featured: false,
@@ -579,13 +686,13 @@ function createInitialSeed(): DatabaseSchema {
 
   const navigation: NavItem[] = [
     { id: 'nav_h1', label: 'Home', path: '/', isExternal: false, visible: true, order: 1, placement: 'header' },
-    { id: 'nav_h2', label: 'Schemes', path: '/schemes', isExternal: false, visible: true, order: 2, placement: 'header' },
-    { id: 'nav_h3', label: 'Al Jalil Garden', path: '/schemes/al-jalil-garden', isExternal: false, visible: true, order: 3, placement: 'header' },
+    { id: 'nav_h2', label: 'Projects', path: '/projects', isExternal: false, visible: true, order: 2, placement: 'header' },
+    { id: 'nav_h3', label: 'Al Jalil Garden', path: '/projects/al-jalil-garden', isExternal: false, visible: true, order: 3, placement: 'header' },
     { id: 'nav_h4', label: 'Properties', path: '/properties', isExternal: false, visible: true, order: 4, placement: 'header' },
     { id: 'nav_h5', label: 'Services', path: '/services', isExternal: false, visible: true, order: 5, placement: 'header' },
     { id: 'nav_f1', label: 'About Al Amaan', path: '/about', isExternal: false, visible: true, order: 1, placement: 'footer_explore' },
-    { id: 'nav_f2', label: 'All Housing Schemes', path: '/schemes', isExternal: false, visible: true, order: 2, placement: 'footer_explore' },
-    { id: 'nav_f3', label: 'Al Jalil Garden Lahore', path: '/schemes/al-jalil-garden', isExternal: false, visible: true, order: 3, placement: 'footer_explore' },
+    { id: 'nav_f2', label: 'All Real Estate Projects', path: '/projects', isExternal: false, visible: true, order: 2, placement: 'footer_explore' },
+    { id: 'nav_f3', label: 'Al Jalil Garden Lahore', path: '/projects/al-jalil-garden', isExternal: false, visible: true, order: 3, placement: 'footer_explore' },
     { id: 'nav_f4', label: 'Available Plots & Homes', path: '/properties', isExternal: false, visible: true, order: 4, placement: 'footer_explore' },
     { id: 'nav_f5', label: 'Our Advisory Services', path: '/services', isExternal: false, visible: true, order: 5, placement: 'footer_explore' },
     { id: 'nav_f6', label: 'Contact Head Office', path: '/contact', isExternal: false, visible: true, order: 6, placement: 'footer_explore' },
@@ -766,12 +873,15 @@ function createInitialSeed(): DatabaseSchema {
       'Al Amaan Real Estate & Developers is a premier Lahore real estate brokerage and turnkey construction firm specializing in TMA and LDA-approved communities—led by our flagship portfolio in Al Jalil Garden.',
     heroImage: ASSET_PATHS.HERO_SOCIETY,
     heroExplorePropertiesLabel: 'Explore Properties',
-    heroExploreSchemesLabel: 'Explore Schemes',
+    heroExploreSchemesLabel: 'Explore Projects',
     heroContactLabel: 'Contact Us',
     featuredSchemeSectionKicker: 'Flagship Master-Planned Community · Lahore',
-    featuredSchemeSectionHeading: 'Al Jalil Garden — Engineered for Modern Family Living & Enduring Value',
+    featuredSchemeSectionHeading: 'Featured Development — Engineered for Modern Living & Enduring Value',
     featuredSchemeSectionSummary:
-      'Positioned opposite the M-2 Motorway Faizpur Interchange, Al Jalil Garden unites immediate-possession residential blocks, underground utilities, lush themed parks, and vibrant commercial boulevards within 8 minutes of central Lahore.',
+      'Explore flagship and partner housing societies managed by Al Amaan Real Estate & Developers with verified approvals, underground utilities, and transparent transfer support.',
+    moreProjectsHeading: 'More Projects & Development Portfolio',
+    moreProjectsSummary:
+      'Discover ongoing, upcoming, and completed real estate projects developed and marketed by Al Amaan Real Estate & Developers across Lahore.',
     whyChooseHeading: 'Why Discerning Families & Investors Choose Al Amaan',
     whyChooseSummary:
       'Every transaction is backed by direct society verification, written due diligence, and decades of on-ground market intelligence across Lahore’s western and southern corridors.',
@@ -930,6 +1040,8 @@ These Terms & Conditions are governed by the laws of the Islamic Republic of Pak
     },
   ];
 
+  const notifications = buildDefaultNotifications(now);
+
   return {
     users,
     passwordResets: [],
@@ -945,7 +1057,40 @@ These Terms & Conditions are governed by the laws of the Islamic Republic of Pak
     social,
     content,
     activityLogs,
+    notifications,
   };
+}
+
+function buildDefaultNotifications(now: string): SiteNotification[] {
+  return [
+    {
+      id: 'notif_init_ajg',
+      title: 'Al Jalil Garden — Phase 2 Possession & Installments',
+      message: '3 & 5 Marla residential plots in Jasmine & Rose Extension now open with verified NDC transfer.',
+      category: 'project',
+      link: '/projects/al-jalil-garden',
+      targetAudience: 'all',
+      createdAt: now,
+    },
+    {
+      id: 'notif_init_dev',
+      title: 'Site Development Progress: West Marina Canal',
+      message: 'Main Sharaqpur Road access & underground utility ducting reached 78% completion.',
+      category: 'development',
+      link: '/projects/al-noor-orchard-west-marina',
+      targetAudience: 'all',
+      createdAt: now,
+    },
+    {
+      id: 'notif_init_prop',
+      title: 'New Verified Plots Available in Lahore',
+      message: 'Browse updated 5 Marla, 10 Marla, 1 Kanal, and commercial listings directly in our portfolio.',
+      category: 'property',
+      link: '/properties',
+      targetAudience: 'all',
+      createdAt: now,
+    },
+  ];
 }
 
 let cachedDb: DatabaseSchema | null = null;
@@ -959,6 +1104,23 @@ export function ensureStorageDirectories(): void {
   }
 }
 
+export function normalizeSchemeDefaults(scheme: HousingScheme): HousingScheme {
+  return {
+    ...scheme,
+    status: scheme.status || 'Ongoing',
+    projectLogo: scheme.projectLogo || '',
+    whatsappNumber: scheme.whatsappNumber || scheme.contactPhone || '',
+    overviewHighlights: Array.isArray(scheme.overviewHighlights) ? scheme.overviewHighlights : [],
+    gallery: Array.isArray(scheme.gallery) ? scheme.gallery : [],
+    facilities: Array.isArray(scheme.facilities) ? scheme.facilities : [],
+    plotCategories: Array.isArray(scheme.plotCategories) ? scheme.plotCategories : [],
+    paymentPlans: Array.isArray(scheme.paymentPlans) ? scheme.paymentPlans : ([] as ProjectPaymentPlan[]),
+    developmentUpdates: Array.isArray(scheme.developmentUpdates)
+      ? scheme.developmentUpdates
+      : ([] as ProjectDevelopmentUpdate[]),
+  };
+}
+
 export function getDb(): DatabaseSchema {
   if (cachedDb) {
     return cachedDb;
@@ -967,7 +1129,14 @@ export function getDb(): DatabaseSchema {
   if (fs.existsSync(DB_FILE)) {
     try {
       const raw = fs.readFileSync(DB_FILE, 'utf-8');
-      cachedDb = JSON.parse(raw) as DatabaseSchema;
+      const parsed = JSON.parse(raw) as DatabaseSchema;
+      parsed.schemes = Array.isArray(parsed.schemes)
+        ? parsed.schemes.map(normalizeSchemeDefaults)
+        : [];
+      if (!Array.isArray(parsed.notifications) || parsed.notifications.length === 0) {
+        parsed.notifications = buildDefaultNotifications(new Date().toISOString());
+      }
+      cachedDb = parsed;
       return cachedDb;
     } catch (err) {
       console.error('Failed reading existing DB file, re-initializing cleanly:', err);
@@ -1007,6 +1176,26 @@ export function recordActivity(
     db.activityLogs = db.activityLogs.slice(0, 300);
   }
   saveDb(db);
+}
+
+export function pushNotification(
+  input: Omit<SiteNotification, 'id' | 'createdAt'>
+): SiteNotification {
+  const db = getDb();
+  if (!Array.isArray(db.notifications)) {
+    db.notifications = [];
+  }
+  const entry: SiteNotification = {
+    id: generateId('notif'),
+    createdAt: new Date().toISOString(),
+    ...input,
+  };
+  db.notifications.unshift(entry);
+  if (db.notifications.length > 120) {
+    db.notifications = db.notifications.slice(0, 120);
+  }
+  saveDb(db);
+  return entry;
 }
 
 export function sanitizeUser(user: StoredUser): UserAccount {
