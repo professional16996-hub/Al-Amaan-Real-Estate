@@ -46,10 +46,14 @@ function saveIdSet(key: string, set: Set<string>) {
 }
 
 function detectPermission(): BrowserPermissionState {
-  if (typeof window === 'undefined' || !('Notification' in window)) {
+  try {
+    if (typeof window === 'undefined' || !('Notification' in window) || !window.Notification) {
+      return 'unsupported';
+    }
+    return (window.Notification.permission || 'default') as BrowserPermissionState;
+  } catch {
     return 'unsupported';
   }
-  return Notification.permission as BrowserPermissionState;
 }
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

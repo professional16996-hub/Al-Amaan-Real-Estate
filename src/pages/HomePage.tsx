@@ -9,7 +9,7 @@ import { WhatsAppLogo } from '../components/WhatsAppIcon';
 import { buildWhatsAppUrl, formatPKRCompact } from '../utils/formatters';
 
 export const HomePage: React.FC = () => {
-  const { data, loading } = useSite();
+  const { data, loading, error, refreshPublicData } = useSite();
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [activeSchemeId, setActiveSchemeId] = useState<string>('All');
 
@@ -50,7 +50,28 @@ export const HomePage: React.FC = () => {
     );
   }
 
-  if (!data) return null;
+  if (!data) {
+    return (
+      <div className="max-w-[760px] mx-auto px-5 py-20 text-center space-y-4">
+        <p className="text-xs font-semibold uppercase tracking-wider text-[#9F7A31]">
+          Al Amaan Real Estate &amp; Developers
+        </p>
+        <h1 className="font-display text-3xl font-semibold text-[#0B192C]">
+          Connecting to Live Portfolio
+        </h1>
+        <p className="text-sm text-slate-600">
+          {error || 'Unable to load project data right now. Please tap below to reload.'}
+        </p>
+        <button
+          type="button"
+          onClick={() => void refreshPublicData()}
+          className="px-6 py-3 text-xs font-semibold bg-[#0B192C] text-white rounded hover:bg-[#132742]"
+        >
+          Retry Connection
+        </button>
+      </div>
+    );
+  }
 
   const { content, settings, contact, testimonials } = data;
   const currency = settings.currency || 'PKR';

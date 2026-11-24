@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { SiteProvider } from './context/SiteContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { PublicLayout } from './components/PublicLayout';
@@ -20,10 +21,11 @@ import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 
 export function App() {
   return (
-    <BrowserRouter>
-      <SiteProvider>
-        <NotificationProvider>
-          <Routes>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <SiteProvider>
+          <NotificationProvider>
+            <Routes>
           {/* Separate Secure Admin Routes (outside PublicLayout) */}
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route path="/admin/*" element={<AdminDashboardPage />} />
@@ -56,10 +58,11 @@ export function App() {
               </PublicLayout>
             }
           />
-          </Routes>
-        </NotificationProvider>
-      </SiteProvider>
-    </BrowserRouter>
+            </Routes>
+          </NotificationProvider>
+        </SiteProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 

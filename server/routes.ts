@@ -140,6 +140,10 @@ function isValidEmail(email: string): boolean {
 // PUBLIC BOOTSTRAP & CATALOG ENDPOINTS
 // ============================================================================
 
+apiRouter.get('/health', (_req, res) => {
+  res.json({ ok: true, timestamp: new Date().toISOString() });
+});
+
 apiRouter.get('/public/bootstrap', (_req, res) => {
   const db = getDb();
   const publishedSchemes = db.schemes

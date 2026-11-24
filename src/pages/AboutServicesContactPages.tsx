@@ -8,9 +8,34 @@ import { InquiryFormCard } from '../components/InquiryFormCard';
 import { WhatsAppLogo } from '../components/WhatsAppIcon';
 import { buildWhatsAppUrl } from '../utils/formatters';
 
+const PageFallbackState: React.FC = () => {
+  const { loading, error, refreshPublicData } = useSite();
+  if (loading) {
+    return (
+      <div className="max-w-[1240px] mx-auto px-5 sm:px-8 py-20 space-y-6">
+        <div className="h-40 bg-slate-100 rounded animate-pulse" />
+        <div className="h-72 bg-slate-100 rounded animate-pulse" />
+      </div>
+    );
+  }
+  return (
+    <div className="max-w-[720px] mx-auto px-5 py-20 text-center space-y-4">
+      <h1 className="font-display text-3xl font-semibold text-[#0B192C]">Al Amaan Real Estate &amp; Developers</h1>
+      <p className="text-sm text-slate-600">{error || 'Unable to load page information right now.'}</p>
+      <button
+        type="button"
+        onClick={() => void refreshPublicData()}
+        className="px-5 py-2.5 text-xs font-semibold bg-[#0B192C] text-white rounded"
+      >
+        Retry
+      </button>
+    </div>
+  );
+};
+
 export const AboutPage: React.FC = () => {
   const { data } = useSite();
-  if (!data) return null;
+  if (!data) return <PageFallbackState />;
   const { content, settings } = data;
 
   return (
@@ -114,7 +139,7 @@ export const AboutPage: React.FC = () => {
 
 export const ServicesPage: React.FC = () => {
   const { data } = useSite();
-  if (!data) return null;
+  if (!data) return <PageFallbackState />;
   const { content, settings } = data;
 
   return (
@@ -181,7 +206,7 @@ export const ServicesPage: React.FC = () => {
 
 export const ContactPage: React.FC = () => {
   const { data } = useSite();
-  if (!data) return null;
+  if (!data) return <PageFallbackState />;
   const { contact, settings, social } = data;
 
   const whatsappUrl = buildWhatsAppUrl(
@@ -340,7 +365,7 @@ export const ContactPage: React.FC = () => {
 
 export const LegalPage: React.FC<{ mode: 'privacy' | 'terms' }> = ({ mode }) => {
   const { data } = useSite();
-  if (!data) return null;
+  if (!data) return <PageFallbackState />;
 
   const isPrivacy = mode === 'privacy';
   const title = isPrivacy ? 'Privacy Policy' : 'Terms & Conditions';

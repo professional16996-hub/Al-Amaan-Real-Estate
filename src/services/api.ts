@@ -66,6 +66,10 @@ export async function apiRequest<T>(
     throw new Error(data?.error || `Request failed with status ${response.status}`);
   }
 
+  if (!contentType.includes('application/json') || data === null) {
+    throw new Error('Unexpected response format from server.');
+  }
+
   return data as T;
 }
 
